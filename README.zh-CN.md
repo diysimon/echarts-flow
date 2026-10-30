@@ -4,14 +4,24 @@
 
 基于 [Apache ECharts 6](https://echarts.apache.org/) 可注册自定义系列（`registerCustomSeries`）的流程图与泳道图扩展，支持只读展示和完整编辑。
 
+**在线 demo：** <https://diysimon.github.io/echarts-flow/> · [全部 16 个用例页](https://diysimon.github.io/echarts-flow/test/cases/index.html)
+
+![aurora 主题的泳道发布流程](./docs/images/aurora.jpg)
+
+| 白板风格泳道 | 经典分栏泳道 |
+| --- | --- |
+| ![白板风格泳道](./docs/images/swimlane-whiteboard.png) | ![经典分栏泳道](./docs/images/swimlane-classic.png) |
+
 - 11 种节点形状：开始、结束、处理、判断、输入/输出、圆形、六边形、文档、数据库、子流程、纯文本
 - 泳道：横向（行）或竖向（列）、标题、按泳道配色、拖动节点换泳道
 - 自动布局（dagre），可选紧凑泳道
 - 避障正交路由：绕开节点、平行线错开、端口分散；也支持直线和曲线
 - 8 套内置主题，可用 `createFlowTheme` 深度覆盖，支持渐变色；节点、连线、泳道可单独设置样式
-- 编辑器：拖动、连线、双击改文字、多选、删除、撤销重做、平移缩放；每项能力都可配置
+- 编辑器：拖动、连线、双击改文字、框选、复制粘贴、方向键微调、对齐参考线、拖连线端点改接、删除、撤销重做、平移缩放；每项能力都可配置
+- 整图导出 PNG / SVG；与 Mermaid flowchart、draw.io 文件互相导入导出
 - 运行状态展示：pending / running / done / error，运行中的连线有流动动画
 - Canvas 与 SVG 渲染都可用，文字按整像素绘制，缩放后依然清晰
+- 大图流畅：平移缩放时直接移动已画好的图形，不重建；视口外的元素不绘制
 
 ## 安装
 
@@ -75,6 +85,40 @@ editor.autoLayout();
 editor.undo();
 ```
 
+鼠标和键盘操作（画布获得焦点时）：
+
+| 操作 | 方式 |
+| --- | --- |
+| 选择、多选 | 单击；Shift / Cmd / Ctrl 点击 |
+| 框选 | 按住 Shift 拖空白处（设置 `blankDragAction: 'boxSelect'` 后直接拖） |
+| 全选、复制、剪切、粘贴、复制一份 | Cmd/Ctrl + A、C、X、V、D |
+| 微调位置 | 方向键移动一个网格，Shift + 方向键移动 10 个 |
+| 连线 | 悬停节点后从出现的圆点拖出 |
+| 改接连线 | 选中连线后，把两端的圆点拖到别的节点上 |
+| 改文字 | 双击节点、连线、泳道表头或标题 |
+| 删除、撤销、重做 | Delete / Backspace，Cmd/Ctrl + Z，Cmd/Ctrl + Shift + Z |
+
+拖动节点时，它的边缘或中心和其他节点对齐处会出现参考线，并吸附过去。
+这些操作也有对应的 API：`selectAll()`、`copySelection()`、`cutSelection()`、`paste()`、`duplicateSelection()`、`moveSelection(dx, dy)`、`reconnectEdge(edgeId, 'source' | 'target', nodeId)`。
+
+## 导出与互通
+
+```ts
+import { fromDrawio, fromMermaid, toMermaid } from 'echarts-flow';
+
+const png = editor.exportPng({ pixelRatio: 2 });       // 整张图的 data URL，不只是可见区域
+const svg = editor.exportSvg({ backgroundColor: 'transparent' });
+const mermaid = editor.exportMermaid();                // 泳道变成 subgraph
+const drawio = editor.exportDrawio();                  // 保留坐标、尺寸、泳道、颜色和箭头
+
+const { graph, direction } = fromMermaid('flowchart LR\n  a([开始]) --> b{通过?} -->|是| c[发布]');
+new FlowEditor(chart, { graph, direction });
+```
+
+- 不用编辑器时，调用 `exportFlowPng(graph, options)` / `exportFlowSvg(graph, options)`。SVG 导出走服务端渲染，在 Node 里也能用，需要注册 `SVGRenderer`。
+- `fromMermaid` 能读节点形状（包括 Mermaid 11 的 `@{ shape: doc }`）、`-->`、`---`、`-.->`、`==>`、`|...|` 和 `-- ... -->` 两种标签写法、`&` 分组、subgraph（变成泳道）以及 frontmatter 里的标题。样式语句会跳过；节点没有坐标，会自动布局。
+- `fromDrawio` 读取未压缩的 draw.io 文件（在 draw.io 里：文件 > 属性 > 取消勾选"压缩"）。泳道（swimlane）变成泳道，池（pool）的名字变成标题。
+
 ## 数据结构
 
 ```ts
@@ -114,6 +158,10 @@ new FlowEditor(chart, { graph, direction: 'LR', theme: 'whiteboard', layout: { i
 ## 主题与样式
 
 内置主题：`light`、`dark`、`macarons`、`tech-blue`、`whiteboard`、`classic`，以及现代风格的 `aurora` 和 `aurora-dark`（渐变背景加柔和光晕、白色或毛玻璃卡片配渐变强调条、环形选中框、悬停时卡片浮起）。效果见 `test/cases/15-aurora.html`。
+
+![全部内置主题](./docs/images/themes.jpg)
+
+![aurora-dark 主题的 Agent 流程](./docs/images/aurora-dark.jpg)
 
 所有 `fill`、`stroke`、`accent`、泳道填充和主题 `background` 除了颜色字符串，也可以传渐变：
 
@@ -166,6 +214,9 @@ editor.getEditOptions();
 | `isEnabled` | 总开关，关闭后只读（仍可选择、平移、缩放） |
 | `canSelect` / `canMultiSelect` | 选择、多选 |
 | `canMoveNodes` / `canConnect` / `canEditLabels` / `canDelete` / `canUndo` / `canChangeLane` | 各项编辑能力 |
+| `canBoxSelect` / `blankDragAction` | 框选；拖空白处是平移（`'pan'`，默认）还是框选（`'boxSelect'`），按住 Shift 切换为另一种 |
+| `canCopyPaste` / `canReconnect` | 复制粘贴快捷键；拖连线端点改接 |
+| `shouldShowAlignGuides` / `alignThreshold` | 对齐参考线及吸附距离（屏幕像素） |
 | `canPan` / `canZoom` / `hasKeyboardShortcuts` | 平移、滚轮缩放、键盘快捷键 |
 | `shouldSnapToGrid` / `gridSize` | 网格吸附 |
 | `minZoom` / `maxZoom` / `wheelZoomSpeed` | 缩放范围和速度 |
@@ -182,16 +233,27 @@ new FlowEditor(chart, { graph, routing: { isSmart: true, shouldSpreadPorts: true
 正交连线默认使用避障路由：绕开节点、走泳道边缘的通道、平行线错开、同一条边上的多条线分开接入。
 节点数超过 `maxSmartNodes` 时回退为简单路由。
 
+## 大图
+
+- 平移和滚轮缩放时，编辑器直接移动已经画好的图形，指针或滚轮停下后再清晰地重绘一次。1000 个节点时每帧平移从约 38ms 降到约 7ms（Chromium，Canvas 渲染）。
+- 只绘制可见区域外扩一个视口范围内的节点和连线。不用编辑器时，给 `buildFlowOption` 传 `viewSize: { width, height }` 也能得到同样的裁剪。
+- 屏幕上小于 4px 的文字不绘制。
+
 ## 本地开发
 
 ```bash
 npm install
-npm run dev      # 打开 http://localhost:5173/ 是 demo，/test/cases/index.html 是全部用例
-npm test
-npm run check    # 类型检查 + 测试 + 构建
+npm run dev               # 打开 http://localhost:5173/ 是 demo，/test/cases/index.html 是全部用例
+npm test                  # 单元测试（Vitest）
+npm run test:e2e          # 在 Chromium 里打开每个用例页：无报错、画出图表、截图与基线一致
+npm run test:e2e:update   # 重新录制截图基线
+npm run check             # 类型检查 + 单元测试 + 构建
+npm run build:site        # 生成静态 demo 站点到 site/，main 分支会自动部署到 GitHub Pages
 ```
 
-`test/cases/` 下有 15 个用例页面，覆盖只读展示、形状与状态、布局方向、编辑、运行监控、JSON 导入导出、大图性能、多实例、主题、泳道、样式配置、编辑配置和 aurora 主题展示。
+截图基线的文件名带平台后缀，因为不同系统的字体渲染不一样。CI 会录制缺失的 Linux 基线并作为 `playwright-snapshots` 产物上传，下载后提交即可开始对比。
+
+`test/cases/` 下有 16 个用例页面，覆盖只读展示、形状与状态、布局方向、编辑、运行监控、JSON 导入导出、大图性能、多实例、主题、泳道、样式配置、编辑配置、aurora 主题展示和导出互通。每个页面都有 Canvas / SVG 切换。
 
 ## License
 

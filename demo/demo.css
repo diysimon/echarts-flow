@@ -86,6 +86,14 @@ body {
   line-height: 1.8;
 }
 
+.flow-demo__link {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #3370ff;
+  text-decoration: none;
+}
+
 .flow-demo__json {
   margin: 0;
   font-size: 12px;

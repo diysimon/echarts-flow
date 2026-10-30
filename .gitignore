@@ -6,3 +6,6 @@ coverage
 .DS_Store
 .vite
 .playwright-mcp
+test-results
+playwright-report
+site
