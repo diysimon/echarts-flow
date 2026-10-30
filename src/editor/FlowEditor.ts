@@ -43,6 +43,7 @@ import { copyElements, pasteElements, type FlowClipboard } from './clipboard';
 import { FlowHistory } from './flowHistory';
 import { LabelInput } from './LabelInput';
 import { ViewTransformer } from './viewTransform';
+import { calcWheelZoomFactor, stepZoom } from './zoomAnimation';
 import { isNudgeCommand, resolveShortcut, type EditorCommand } from './keyboardShortcuts';
 import { addLane, removeLane, setNodeLanes, updateLane } from './laneOps';
 import { DEFAULT_EDIT_OPTIONS, isEditAllowed, mergeEditOptions, type FlowEditOptions } from './editOptions';
@@ -184,6 +185,9 @@ export class FlowEditor {
   /** Viewport of the last full render; pan and zoom frames transform that drawing. */
   private renderedViewport: Viewport = this.viewport;
   private settleTimer: number | null = null;
+  /** Where the wheel zoom is heading; null when no zoom is running. */
+  private zoomTarget: { scale: number; anchor: Point } | null = null;
+  private zoomFrame: number | null = null;
   /** A frame is pending that must rebuild the drawing, not just move it. */
   private needsFullRender = false;
   private readonly viewTransformer: ViewTransformer;
@@ -418,6 +422,7 @@ export class FlowEditor {
   }
 
   fitView(): void {
+    this.cancelZoomAnimation();
     this.viewport = calcFitViewport(
       this.graph,
       this.chart.getWidth(),
@@ -461,6 +466,7 @@ export class FlowEditor {
 
   /** Moves and zooms the view directly; the scale is kept within the zoom limits. */
   setViewport(viewport: Viewport): void {
+    this.cancelZoomAnimation();
     this.viewport = { ...viewport, scale: clampScale(viewport.scale, this.getZoomLimits()) };
     this.render();
   }
@@ -510,6 +516,7 @@ export class FlowEditor {
   }
 
   dispose(): void {
+    this.cancelZoomAnimation();
     this.cancelScheduledRender();
     this.cancelInteraction();
     this.labelInput.close();
@@ -673,6 +680,7 @@ export class FlowEditor {
   }
 
   private zoomAroundCenter(factor: number): void {
+    this.cancelZoomAnimation();
     const center = { x: this.chart.getWidth() / 2, y: this.chart.getHeight() / 2 };
     this.viewport = zoomAt(this.viewport, center, factor, this.getZoomLimits());
     this.render();
@@ -748,10 +756,12 @@ export class FlowEditor {
   }
 
   private setHoveredNode(nodeId: string | null): void {
-    // Hover only matters while idle or while picking an edge's target; skipping it
-    // during a pan keeps pan frames on the fast path.
+    // Hover only matters while idle or while picking an edge's target. Nodes slide
+    // under a still pointer during pan and zoom; skipping hover then keeps those
+    // frames on the fast path instead of rebuilding the chart.
     const isPickingTarget = this.interaction?.type === 'connect' || this.interaction?.type === 'reconnect';
-    if (this.hoveredNodeId === nodeId || (this.interaction && !isPickingTarget)) {
+    const isMovingView = this.zoomTarget !== null || this.settleTimer !== null;
+    if (this.hoveredNodeId === nodeId || (this.interaction && !isPickingTarget) || isMovingView) {
       return;
     }
     this.hoveredNodeId = nodeId;
@@ -1145,11 +1155,49 @@ export class FlowEditor {
       return;
     }
     event.preventDefault();
-    const factor = Math.exp(-event.deltaY * this.editOptions.wheelZoomSpeed);
-    this.viewport = zoomAt(this.viewport, this.getScreenPoint(event), factor, this.getZoomLimits());
-    this.scheduleViewUpdate();
-    this.scheduleSettledRender();
+    const factor = calcWheelZoomFactor(event, this.editOptions.wheelZoomSpeed);
+    const baseScale = this.zoomTarget?.scale ?? this.viewport.scale;
+    // Later wheel events extend the running zoom instead of restarting it.
+    this.zoomTarget = { scale: clampScale(baseScale * factor, this.getZoomLimits()), anchor: this.getScreenPoint(event) };
+    this.startZoomAnimation();
   };
+
+  /** Eases the view toward the wheel target, one fast transformed frame at a time. */
+  private startZoomAnimation(): void {
+    if (this.zoomFrame !== null) {
+      return;
+    }
+    let lastTime = performance.now();
+    const tick = (now: number): void => {
+      const target = this.zoomTarget;
+      if (!target) {
+        this.zoomFrame = null;
+        return;
+      }
+      const step = stepZoom(this.viewport, target.scale, target.anchor, now - lastTime, this.getZoomLimits());
+      lastTime = now;
+      this.viewport = step.viewport;
+      if (!this.applyViewTransform()) {
+        this.renderNow(false);
+      }
+      if (step.isDone) {
+        this.zoomTarget = null;
+        this.zoomFrame = null;
+        this.scheduleSettledRender();
+        return;
+      }
+      this.zoomFrame = requestAnimationFrame(tick);
+    };
+    this.zoomFrame = requestAnimationFrame(tick);
+  }
+
+  private cancelZoomAnimation(): void {
+    if (this.zoomFrame !== null) {
+      cancelAnimationFrame(this.zoomFrame);
+      this.zoomFrame = null;
+    }
+    this.zoomTarget = null;
+  }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
     const command = resolveShortcut(event);
