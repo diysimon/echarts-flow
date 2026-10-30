@@ -1,4 +1,4 @@
-import { calcNodesBounds, clampScale, fitBounds, MAX_SCALE, panBy, toScreen, toWorld, zoomAt } from './viewport';
+import { calcCoveredShare, calcNodesBounds, clampScale, fitBounds, MAX_SCALE, panBy, toScreen, toWorld, zoomAt } from './viewport';
 import { resolveNode } from './nodeShape';
 import { lightTheme } from '../theme/lightThemes';
 
@@ -115,5 +115,33 @@ describe('fitBounds', () => {
 
     // Assert
     expect(viewport.scale).toBe(0.5);
+  });
+});
+
+describe('calcCoveredShare', () => {
+  const TARGET = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+
+  it('should return 1 when the cover contains the target', () => {
+    // Act
+    const share = calcCoveredShare(TARGET, { minX: -10, minY: -10, maxX: 200, maxY: 200 });
+
+    // Assert
+    expect(share).toBe(1);
+  });
+
+  it('should return the overlapping fraction when the cover is shifted', () => {
+    // Act
+    const share = calcCoveredShare(TARGET, { minX: 50, minY: 0, maxX: 150, maxY: 100 });
+
+    // Assert
+    expect(share).toBe(0.5);
+  });
+
+  it('should return 0 when the boxes do not touch', () => {
+    // Act
+    const share = calcCoveredShare(TARGET, { minX: 200, minY: 200, maxX: 300, maxY: 300 });
+
+    // Assert
+    expect(share).toBe(0);
   });
 });

@@ -42,8 +42,36 @@ function setTransform(element: ZrGroupLike, x: number, y: number, scale: number)
  */
 export class ViewTransformer {
   private isTransformed = false;
+  /** Root element moved with a CSS transform, while that mode is active. */
+  private cssRoot: HTMLElement | null = null;
 
   constructor(private readonly chart: EChartsType) {}
+
+  /**
+   * Shows `next` by moving the chart's rendered bitmap with a CSS transform.
+   * The browser composites it without any repaint, so the cost does not grow
+   * with the graph; areas scrolled into view stay empty until the next full
+   * render. Returns false when the root element is not available.
+   */
+  applyCss(rendered: Viewport, next: Viewport, pixelRatio = 1): boolean {
+    const painter = this.chart.getZr().painter as unknown as { getViewportRoot?(): HTMLElement };
+    const root = painter.getViewportRoot?.();
+    if (!root?.style) {
+      return false;
+    }
+    const scale = next.scale / rendered.scale;
+    const x = snapToPixel(next.x - rendered.x * scale, pixelRatio);
+    const y = snapToPixel(next.y - rendered.y * scale, pixelRatio);
+    root.style.transformOrigin = '0 0';
+    root.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    this.cssRoot = root;
+    return true;
+  }
+
+  /** Whether a CSS transform is showing a moved view. */
+  get isCssTransformed(): boolean {
+    return this.cssRoot !== null;
+  }
 
   /**
    * Shows `next` by transforming the frame drawn for `rendered`. Offsets snap
@@ -72,8 +100,13 @@ export class ViewTransformer {
 
   /** Puts every series back in place; call before a full render. Returns whether anything was moved. */
   reset(): boolean {
+    const wasCssTransformed = this.cssRoot !== null;
+    if (this.cssRoot) {
+      this.cssRoot.style.transform = '';
+      this.cssRoot = null;
+    }
     if (!this.isTransformed) {
-      return false;
+      return wasCssTransformed;
     }
     this.isTransformed = false;
     this.findSeriesGroups()?.forEach((group, seriesId) => {

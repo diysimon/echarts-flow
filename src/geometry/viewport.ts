@@ -93,6 +93,14 @@ export function isBoundsOverlapping(a: Bounds, b: Bounds): boolean {
   return a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
 }
 
+/** Share of the `target` area that `cover` overlaps, from 0 to 1. */
+export function calcCoveredShare(target: Bounds, cover: Bounds): number {
+  const width = Math.max(0, Math.min(target.maxX, cover.maxX) - Math.max(target.minX, cover.minX));
+  const height = Math.max(0, Math.min(target.maxY, cover.maxY) - Math.max(target.minY, cover.minY));
+  const area = (target.maxX - target.minX) * (target.maxY - target.minY);
+  return area > 0 ? (width * height) / area : 0;
+}
+
 /** Viewport that centers the bounds; never zooms in past 1:1 so small graphs stay readable. */
 export function fitBounds(
   bounds: Bounds | null,

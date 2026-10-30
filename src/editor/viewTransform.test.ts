@@ -122,3 +122,61 @@ describe('ViewTransformer', () => {
     expect(isApplied).toBe(false);
   });
 });
+
+function createCssChart() {
+  const root = { style: { transform: '', transformOrigin: '' } };
+  const chart = {
+    getZr: () => ({ painter: { getViewportRoot: () => root } }),
+  } as unknown as EChartsType;
+  return { chart, root };
+}
+
+describe('ViewTransformer.applyCss', () => {
+  it('should translate and scale the viewport root when the view moves', () => {
+    // Arrange
+    const { chart, root } = createCssChart();
+
+    // Act
+    new ViewTransformer(chart).applyCss(RENDERED, { x: -100, y: 20, scale: 2 });
+
+    // Assert
+    expect(root.style.transform).toBe('translate(-100px, 20px) scale(2)');
+  });
+
+  it('should clear the root transform when reset', () => {
+    // Arrange
+    const { chart, root } = createCssChart();
+    const transformer = new ViewTransformer(chart);
+    transformer.applyCss(RENDERED, { x: 30, y: 0, scale: 1 });
+
+    // Act
+    transformer.reset();
+
+    // Assert
+    expect(root.style.transform).toBe('');
+  });
+
+  it('should report that it moved something when reset after a css transform', () => {
+    // Arrange
+    const { chart } = createCssChart();
+    const transformer = new ViewTransformer(chart);
+    transformer.applyCss(RENDERED, { x: 30, y: 0, scale: 1 });
+
+    // Act
+    const wasTransformed = transformer.reset();
+
+    // Assert
+    expect(wasTransformed).toBe(true);
+  });
+
+  it('should report failure when the painter has no viewport root', () => {
+    // Arrange
+    const chart = { getZr: () => ({ painter: {} }) } as unknown as EChartsType;
+
+    // Act
+    const isApplied = new ViewTransformer(chart).applyCss(RENDERED, { x: 30, y: 0, scale: 1 });
+
+    // Assert
+    expect(isApplied).toBe(false);
+  });
+});

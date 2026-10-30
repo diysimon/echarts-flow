@@ -18,6 +18,7 @@ import { buildFlowOptionFromScene, buildFlowScene, calcFitViewport, CULL_MARGIN_
 import { calcFlowLayout, fillMissingPositions, type FlowLayoutOptions } from '../layout/calcFlowLayout';
 import { findLaneAt, type LaneLayout } from '../layout/laneLayout';
 import {
+  calcCoveredShare,
   calcNodesBounds,
   calcViewBounds,
   clampScale,
@@ -80,6 +81,8 @@ export interface FlowEditorOptions {
   layout?: Omit<FlowLayoutOptions, 'direction' | 'theme'>;
   /** Edge routing: obstacle avoidance, port spreading, and the size limit for both. */
   routing?: EdgeRoutingOptions;
+  /** Skip labels smaller than this many screen pixels, which speeds up big zoomed-out graphs. Defaults to 0: always draw. */
+  minLabelPixels?: number;
   onChange?(graph: FlowGraph): void;
   onSelectionChange?(selection: FlowSelection): void;
 }
@@ -118,6 +121,18 @@ const DRAG_SMART_ROUTING_LIMIT = 60;
 const PASTE_OFFSET = 20;
 /** Shift + arrow moves this many steps at once. */
 const NUDGE_LARGE_FACTOR = 10;
+/** Above this many nodes, pan and zoom frames move the finished bitmap with CSS instead of repainting. */
+const LARGE_SCENE_NODES = 250;
+/** In bitmap mode, redraw once less than this share of the view is covered by the old picture. */
+const MIN_COVERED_SHARE = 0.8;
+/**
+ * In bitmap mode a zoom-out redraw is drawn this much further out than the view,
+ * so the next frames scale that picture up instead of redrawing again.
+ */
+const ZOOM_OUT_LOOKAHEAD = 0.7;
+/** When a full render takes longer than this, hover redraws wait until the pointer rests. */
+const HOVER_RENDER_BUDGET = 12;
+const HOVER_REST_DELAY = 90;
 
 const NUDGE_DIRECTIONS: Record<'nudge-left' | 'nudge-right' | 'nudge-up' | 'nudge-down', Point> = {
   'nudge-left': { x: -1, y: 0 },
@@ -188,6 +203,9 @@ export class FlowEditor {
   /** Where the wheel zoom is heading; null when no zoom is running. */
   private zoomTarget: { scale: number; anchor: Point } | null = null;
   private zoomFrame: number | null = null;
+  /** Milliseconds the last full render took; slow scenes wait for the pointer to rest before hover redraws. */
+  private lastRenderCost = 0;
+  private hoverTimer: number | null = null;
   /** A frame is pending that must rebuild the drawing, not just move it. */
   private needsFullRender = false;
   private readonly viewTransformer: ViewTransformer;
@@ -517,14 +535,17 @@ export class FlowEditor {
 
   dispose(): void {
     this.cancelZoomAnimation();
+    this.cancelHoverRender();
     this.cancelScheduledRender();
     this.cancelInteraction();
     this.labelInput.close();
     this.unbindEvents();
   }
 
-  private renderNow(isAnimated: boolean): void {
+  private renderNow(isAnimated: boolean, drawnViewport: Viewport = this.viewport): void {
+    const startTime = performance.now();
     this.cancelScheduledRender();
+    this.cancelHoverRender();
     // After pan or zoom frames the series sit at their old place with a transform.
     // Resetting snaps them back there, so an animated update would visibly slide
     // everything from the old view to the new one; draw the new view directly.
@@ -533,9 +554,10 @@ export class FlowEditor {
     const interaction = this.interaction;
     const config = {
       direction: this.direction,
-      viewport: this.viewport,
+      viewport: drawnViewport,
       viewSize: { width: this.chart.getWidth(), height: this.chart.getHeight() },
       pixelRatio: this.chart.getDevicePixelRatio(),
+      minLabelPixels: this.options.minLabelPixels,
       renderer: this.chart.getZr().painter.getType() === 'svg' ? 'svg' as const : 'canvas' as const,
       selection: this.selection,
       hoveredNodeId: this.hoveredNodeId,
@@ -557,8 +579,9 @@ export class FlowEditor {
     this.renderedNodes = scene.nodes;
     this.renderedEdges = scene.edges;
     this.renderedLanes = scene.lanes;
-    this.renderedViewport = this.viewport;
+    this.renderedViewport = drawnViewport;
     this.chart.setOption(buildFlowOptionFromScene(scene, config));
+    this.lastRenderCost = performance.now() - startTime;
   }
 
   private getDraftEdge() {
@@ -734,12 +757,22 @@ export class FlowEditor {
   private applyViewTransform(): boolean {
     const width = this.chart.getWidth();
     const height = this.chart.getHeight();
+    const pixelRatio = this.chart.getDevicePixelRatio();
+    if (this.renderedNodes.length > LARGE_SCENE_NODES) {
+      // Big scenes take several milliseconds to repaint, so move the finished
+      // bitmap instead and redraw once too much empty space has scrolled in.
+      const shown = calcViewBounds(this.renderedViewport, width, height);
+      if (calcCoveredShare(calcViewBounds(this.viewport, width, height), shown) < MIN_COVERED_SHARE) {
+        return false;
+      }
+      return this.viewTransformer.applyCss(this.renderedViewport, this.viewport, pixelRatio);
+    }
     const drawn = calcViewBounds(this.renderedViewport, width, height, CULL_MARGIN_RATIO);
     if (!isBoundsInside(calcViewBounds(this.viewport, width, height), drawn)) {
       return false;
     }
     const gridStep = this.getTheme().grid.size * this.renderedViewport.scale;
-    return this.viewTransformer.apply(this.renderedViewport, this.viewport, gridStep, this.chart.getDevicePixelRatio());
+    return this.viewTransformer.apply(this.renderedViewport, this.viewport, gridStep, pixelRatio);
   }
 
   /** Wheel zoom has no end event, so redraw sharply once the wheel has been still for a moment. */
@@ -769,12 +802,34 @@ export class FlowEditor {
       return;
     }
     this.hoveredNodeId = nodeId;
-    this.scheduleRender();
+    if (this.lastRenderCost <= HOVER_RENDER_BUDGET) {
+      this.scheduleRender();
+      return;
+    }
+    // A pointer sweeping across a big graph would rebuild it for every node it
+    // crosses; wait until it rests so only the final hover is drawn.
+    this.cancelHoverRender();
+    this.hoverTimer = window.setTimeout(() => {
+      this.hoverTimer = null;
+      this.scheduleRender();
+    }, HOVER_REST_DELAY);
+  }
+
+  private cancelHoverRender(): void {
+    if (this.hoverTimer !== null) {
+      window.clearTimeout(this.hoverTimer);
+      this.hoverTimer = null;
+    }
   }
 
   private prepareContainer(): void {
-    if (getComputedStyle(this.container).position === 'static') {
+    const style = getComputedStyle(this.container);
+    if (style.position === 'static') {
       this.container.style.position = 'relative';
+    }
+    // Pan and zoom on big graphs move the drawn bitmap with CSS; keep it inside the chart.
+    if (style.overflow === 'visible') {
+      this.container.style.overflow = 'hidden';
     }
     // Keyboard shortcuts need the container to be focusable.
     if (!this.container.hasAttribute('tabindex')) {
@@ -1181,9 +1236,10 @@ export class FlowEditor {
       }
       const step = stepZoom(this.viewport, target.scale, target.anchor, now - lastTime, this.getZoomLimits());
       lastTime = now;
+      const isZoomingOut = step.viewport.scale < this.viewport.scale;
       this.viewport = step.viewport;
       if (!this.applyViewTransform()) {
-        this.renderNow(false);
+        this.renderZoomFrame(target.anchor, isZoomingOut);
       }
       if (step.isDone) {
         this.zoomTarget = null;
@@ -1194,6 +1250,16 @@ export class FlowEditor {
       this.zoomFrame = requestAnimationFrame(tick);
     };
     this.zoomFrame = requestAnimationFrame(tick);
+  }
+
+  /** Redraws mid-zoom; big scenes zooming out draw ahead so the following frames stay on the bitmap. */
+  private renderZoomFrame(anchor: Point, isZoomingOut: boolean): void {
+    if (!isZoomingOut || this.renderedNodes.length <= LARGE_SCENE_NODES) {
+      this.renderNow(false);
+      return;
+    }
+    this.renderNow(false, zoomAt(this.viewport, anchor, ZOOM_OUT_LOOKAHEAD, this.getZoomLimits()));
+    this.applyViewTransform();
   }
 
   private cancelZoomAnimation(): void {
