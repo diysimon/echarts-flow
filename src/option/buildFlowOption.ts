@@ -1,4 +1,5 @@
 import type { CustomSeriesOption, CustomSeriesRenderItem, EChartsCoreOption } from 'echarts';
+import { zrUtil } from 'echarts/core';
 import type { DraftEdge, EdgeRoute, FlowDirection, FlowGraph, FlowSelection, ResolvedNode, Viewport } from '../types';
 import { calcDraftRoute, calcPolylineMidpoint } from '../geometry/edgeRoute';
 import { routeEdges, type EdgeRoutingOptions, type RoutableEdge, type RouteCache } from '../geometry/edgeRouter';
@@ -271,18 +272,23 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
   const laneItems = [...lanes.lanes.map((lane) => lane.id), ...(lanes.title ? ['__title__'] : [])];
 
   // Registered custom series are referenced by name; the typings only know functions.
-  const buildSeries = (id: string, type: string, z: number, payload: object, data: object[]): CustomSeriesOption => ({
-    type: 'custom',
-    coordinateSystem: 'none',
-    animation: config.animation ?? true,
-    animationDurationUpdate: UPDATE_ANIMATION_DURATION,
-    animationEasingUpdate: 'cubicOut',
-    id,
-    z,
-    renderItem: type as unknown as CustomSeriesRenderItem,
-    itemPayload: payload as Record<string, unknown>,
-    data,
-  });
+  // setOption deep-clones options; the payload is rebuilt on every render and only
+  // read by renderItem, so it is passed by reference (about 6 ms on 1000 nodes).
+  const buildSeries = (id: string, type: string, z: number, payload: object, data: object[]): CustomSeriesOption => {
+    zrUtil.setAsPrimitive(payload);
+    return {
+      type: 'custom',
+      coordinateSystem: 'none',
+      animation: config.animation ?? true,
+      animationDurationUpdate: UPDATE_ANIMATION_DURATION,
+      animationEasingUpdate: 'cubicOut',
+      id,
+      z,
+      renderItem: type as unknown as CustomSeriesRenderItem,
+      itemPayload: payload as Record<string, unknown>,
+      data,
+    };
+  };
 
   return {
     backgroundColor: toZrColor(theme.background),

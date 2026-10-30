@@ -45,7 +45,7 @@ describe('renderFlowEdge', () => {
     const root = render(createEdge());
 
     // Assert: x = 0 becomes 0.5 for a 1px stroke
-    expect(findChild(root, 'line')?.shape?.pathData).toMatch(/^M0\.5,0\.5/);
+    expect(findChild(root, 'line')?.shape?.points).toContainEqual({ x: 0.5, y: 0.5 });
   });
   it('should attach edge hit info to the hit path', () => {
     // Act
@@ -131,7 +131,7 @@ describe('renderFlowEdge', () => {
     expect(findChild(root, 'line')?.style?.lineDash).toEqual([4, 2]);
   });
 
-  it('should draw a cubic path when the route is a curve', () => {
+  it('should mark the line as a curve when the route is a curve', () => {
     // Arrange
     const edge = createEdge({ isCurve: true, points: [{ x: 0, y: 0 }, { x: 0, y: 50 }, { x: 100, y: 50 }, { x: 100, y: 100 }] });
 
@@ -139,6 +139,14 @@ describe('renderFlowEdge', () => {
     const root = render(edge);
 
     // Assert
-    expect(findChild(root, 'line')?.shape?.pathData).toContain('C');
+    expect(findChild(root, 'line')?.shape?.isCurve).toBe(true);
+  });
+
+  it('should give the hit path the same shape as the line when the edge is not a draft', () => {
+    // Act
+    const root = render(createEdge());
+
+    // Assert
+    expect(findChild(root, 'hit')?.shape).toBe(findChild(root, 'line')?.shape);
   });
 });

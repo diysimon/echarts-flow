@@ -1,4 +1,5 @@
 import type { CustomSeriesRenderItem } from 'echarts';
+import { registerEdgeLineShape } from './render/edgeLineShape';
 import { renderFlowEdge } from './render/renderFlowEdge';
 import { renderFlowGrid } from './render/renderFlowGrid';
 import { renderFlowLane } from './render/renderFlowLane';
@@ -18,6 +19,7 @@ export interface FlowExtensionRegisters {
 }
 
 export function install(registers: FlowExtensionRegisters): void {
+  registerEdgeLineShape();
   registers.registerCustomSeries(FLOW_GRID_SERIES_TYPE, renderFlowGrid as CustomSeriesRenderItem);
   registers.registerCustomSeries(FLOW_LANE_SERIES_TYPE, renderFlowLane as CustomSeriesRenderItem);
   registers.registerCustomSeries(FLOW_EDGE_SERIES_TYPE, renderFlowEdge as CustomSeriesRenderItem);

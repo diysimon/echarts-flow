@@ -1,9 +1,10 @@
 import type { CustomSeriesRenderItemParams, CustomSeriesRenderItemReturn } from 'echarts';
 import type { ArrowType, Point } from '../types';
 import { calcArrowGeometry } from '../geometry/arrowShape';
-import { buildCurvePath, buildRoundedPath, shortenEnd, shortenStart } from '../geometry/edgePath';
+import { shortenEnd, shortenStart } from '../geometry/edgePath';
 import { EDGE_HIT_WIDTH } from '../theme/flowStyle';
 import type { FlowTheme } from '../theme/flowTheme';
+import { EDGE_LINE_SHAPE, type EdgeLineShape } from './edgeLineShape';
 import type { FlowEdgePayload, FlowHitInfo, RenderedEdge } from './flowPayload';
 import { isTransparent } from './flowColor';
 import { projectPoint, snapLineWidth, snapToPixel } from './pixelAlign';
@@ -143,13 +144,13 @@ export function renderFlowEdge(params: CustomSeriesRenderItemParams): CustomSeri
   const targetArrow = buildArrow(view, appearance.targetArrow, points[last - 1], points[last], 'arrow-target');
   const sourceArrow = buildArrow(view, appearance.sourceArrow, points[1], points[0], 'arrow-source');
   const linePoints = shortenStart(shortenEnd(points, targetArrow.inset), sourceArrow.inset);
-  const pathData = edge.isCurve ? buildCurvePath(linePoints) : buildRoundedPath(linePoints, appearance.cornerRadius * scale);
+  const shape: EdgeLineShape = { points: linePoints, radius: appearance.cornerRadius * scale, isCurve: edge.isCurve };
 
   const lineElement = {
-    type: 'path',
+    type: EDGE_LINE_SHAPE,
     name: 'line',
     silent: true,
-    shape: { pathData },
+    shape,
     style: {
       fill: 'none',
       stroke: view.color,
@@ -159,20 +160,20 @@ export function renderFlowEdge(params: CustomSeriesRenderItemParams): CustomSeri
       opacity: appearance.opacity,
     },
     keyframeAnimation: buildFlowAnimation(edge),
-    // ECharts typings demand `shape` in every keyframe; style-only keyframes work at runtime.
-  } as ElementOption;
+    // ECharts typings know neither registered shapes nor style-only keyframes; both work at runtime.
+  } as unknown as ElementOption;
 
   const children: (ElementOption | null)[] = [
     // Invisible wide stroke so thin edges are easy to click.
     edge.isDraft
       ? null
       : {
-        type: 'path',
+        type: EDGE_LINE_SHAPE,
         name: 'hit',
         info,
-        shape: { pathData },
+        shape,
         style: { fill: 'none', stroke: 'transparent', lineWidth: EDGE_HIT_WIDTH },
-      },
+      } as unknown as ElementOption,
     lineElement,
     targetArrow.element,
     sourceArrow.element,
