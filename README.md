@@ -55,6 +55,8 @@ chart.setOption(buildFlowOption(graph, { viewport, theme: 'light' }));
 
 Nodes without coordinates are laid out automatically.
 
+ECharts reads `devicePixelRatio` only at init, so after browser zoom or moving the window to another display the canvas gets stretched and text looks soft. `FlowEditor` handles this itself; for a read-only chart call `watchDevicePixelRatio(chart)` (it returns a function that stops watching).
+
 ### Editor
 
 ```ts

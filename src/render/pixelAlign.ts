@@ -15,3 +15,13 @@ export function projectPoint(viewport: Viewport, point: Point, lineWidth: number
   const screen = toScreen(viewport, point);
   return { x: alignToPixel(screen.x, lineWidth), y: alignToPixel(screen.y, lineWidth) };
 }
+
+/**
+ * Text centered on a whole pixel puts line i at (i - (n - 1) / 2) * lineHeight,
+ * which is a half pixel off for an even line count and odd line height.
+ * An even line height keeps every line on whole pixels, so glyphs are not
+ * smeared across two pixel rows.
+ */
+export function snapLineHeight(lineHeight: number): number {
+  return Math.max(Math.round(lineHeight / 2) * 2, 2);
+}

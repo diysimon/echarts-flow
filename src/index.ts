@@ -44,6 +44,7 @@ export { classicTheme, lightTheme, macaronsTheme, whiteboardTheme } from './them
 export { darkTheme, techBlueTheme } from './theme/darkThemes';
 export { auroraDarkTheme, auroraTheme } from './theme/modernThemes';
 export { linearGradient } from './render/flowColor';
+export { applyDevicePixelRatio, watchDevicePixelRatio } from './render/pixelRatioSync';
 export { FLOW_THEMES, resolveFlowTheme } from './theme/themeRegistry';
 export { FlowEditor } from './editor/FlowEditor';
 export type { AddNodeInput, FlowEditorOptions, FlowEditorChart } from './editor/FlowEditor';

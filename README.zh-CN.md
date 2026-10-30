@@ -55,6 +55,8 @@ chart.setOption(buildFlowOption(graph, { viewport, theme: 'light' }));
 
 节点没有坐标时会自动布局。
 
+ECharts 只在 init 时读取一次 `devicePixelRatio`，浏览器缩放或把窗口拖到另一块屏幕后，画布会被拉伸，文字发虚。`FlowEditor` 会自动处理；只读图表请调用 `watchDevicePixelRatio(chart)`（返回一个停止监听的函数）。
+
 ### 编辑器
 
 ```ts

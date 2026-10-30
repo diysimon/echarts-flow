@@ -1,5 +1,5 @@
 import { init } from 'echarts/core';
-import { buildFlowOption, calcFitViewport, type FlowEdge, type FlowGraph, type FlowNode, type FlowNodeShape, type FlowStatus } from '../../src/index';
+import { buildFlowOption, calcFitViewport, watchDevicePixelRatio, type FlowEdge, type FlowGraph, type FlowNode, type FlowNodeShape, type FlowStatus } from '../../src/index';
 import { getElement } from './shared/caseUtils';
 
 const SHAPES: FlowNodeShape[] = ['start', 'process', 'decision', 'io', 'end'];
@@ -30,5 +30,6 @@ function buildMatrixGraph(): FlowGraph {
 
 const graph = buildMatrixGraph();
 const chart = init(getElement<HTMLElement>('#chart'));
+watchDevicePixelRatio(chart);
 const viewport = calcFitViewport(graph, chart.getWidth(), chart.getHeight());
 chart.setOption(buildFlowOption(graph, { viewport }));

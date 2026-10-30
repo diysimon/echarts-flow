@@ -19,6 +19,7 @@ import { findLaneAt, type LaneLayout } from '../layout/laneLayout';
 import { clampScale, panBy, toScreen, toWorld, zoomAt, type ZoomLimits } from '../geometry/viewport';
 import { RouteCache, type EdgeRoutingOptions } from '../geometry/edgeRouter';
 import { isFlowHitInfo, type FlowHitInfo } from '../render/flowPayload';
+import { watchDevicePixelRatio } from '../render/pixelRatioSync';
 import type { FlowTheme, FlowThemeName } from '../theme/flowTheme';
 import { resolveFlowTheme } from '../theme/themeRegistry';
 import { FlowHistory } from './flowHistory';
@@ -132,6 +133,7 @@ export class FlowEditor {
   private renderedEdges: ResolvedEdge[] = [];
   private renderedLanes: LaneLayout = { lanes: [], title: null };
   private pendingFrame: number | null = null;
+  private stopWatchingPixelRatio: () => void = () => {};
   private readonly history = new FlowHistory();
   private readonly routeCache = new RouteCache();
   private readonly labelInput: LabelInput;
@@ -544,6 +546,7 @@ export class FlowEditor {
     this.chart.getZr().on('globalout', this.handlePointerLeave);
     this.container.addEventListener('wheel', this.handleWheel, { passive: false });
     this.container.addEventListener('keydown', this.handleKeyDown);
+    this.stopWatchingPixelRatio = watchDevicePixelRatio(this.chart);
   }
 
   private unbindEvents(): void {
@@ -555,6 +558,7 @@ export class FlowEditor {
     this.chart.getZr().off('globalout', this.handlePointerLeave);
     this.container.removeEventListener('wheel', this.handleWheel);
     this.container.removeEventListener('keydown', this.handleKeyDown);
+    this.stopWatchingPixelRatio();
   }
 
   private startInteraction(interaction: Interaction): void {

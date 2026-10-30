@@ -1,5 +1,5 @@
 import { init } from 'echarts/core';
-import { buildFlowOption, calcFitViewport, type FlowGraph, type FlowHitInfo } from '../../src/index';
+import { buildFlowOption, calcFitViewport, watchDevicePixelRatio, type FlowGraph, type FlowHitInfo } from '../../src/index';
 import { createLogger, getElement } from './shared/caseUtils';
 
 const ORDER_GRAPH: FlowGraph = {
@@ -24,6 +24,8 @@ const ORDER_GRAPH: FlowGraph = {
 const container = getElement<HTMLElement>('#chart');
 const log = createLogger(getElement<HTMLElement>('#log'));
 const chart = init(container);
+// Without FlowEditor, keep the canvas sharp across browser zoom and display changes manually.
+watchDevicePixelRatio(chart);
 
 function renderChart(): void {
   const viewport = calcFitViewport(ORDER_GRAPH, chart.getWidth(), chart.getHeight());

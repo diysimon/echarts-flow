@@ -4,7 +4,7 @@ import { getPortOffset, getShapeDecorations, getShapePath, getShapePolygon, getS
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowHitInfo, FlowNodePayload } from './flowPayload';
 import { isTransparent, toZrColor } from './flowColor';
-import { alignToPixel } from './pixelAlign';
+import { alignToPixel, snapLineHeight } from './pixelAlign';
 
 export type ElementOption = NonNullable<CustomSeriesRenderItemReturn>;
 
@@ -197,7 +197,7 @@ function buildLabel(view: NodeView): ElementOption {
       fontSize: appearance.fontSize * scale,
       fontWeight: appearance.fontWeight,
       fontFamily: theme.fontFamily,
-      lineHeight: appearance.lineHeight * scale,
+      lineHeight: snapLineHeight(appearance.lineHeight * scale),
       width: (node.width - theme.text.paddingX) * scale,
       overflow: 'truncate',
       align: 'center',

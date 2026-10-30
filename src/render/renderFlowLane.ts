@@ -5,7 +5,7 @@ import { isWideText } from '../geometry/textLayout';
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowHitInfo, FlowLanePayload } from './flowPayload';
 import { toZrColor } from './flowColor';
-import { alignToPixel } from './pixelAlign';
+import { alignToPixel, snapLineHeight } from './pixelAlign';
 import type { ElementOption } from './renderFlowNode';
 
 /** Row headers read bottom to top, like a book spine. */
@@ -61,7 +61,7 @@ function buildLane(lane: LaneBox, viewport: Viewport, theme: FlowTheme): Element
           fontSize,
           fontWeight: headerFontWeight,
           fontFamily: theme.fontFamily,
-          lineHeight: Math.round(fontSize * STACKED_LINE_HEIGHT_RATIO),
+          lineHeight: snapLineHeight(fontSize * STACKED_LINE_HEIGHT_RATIO),
           align: 'center',
           verticalAlign: 'middle',
           width: (isRotated ? header.height : header.width) - headerFontSize,
