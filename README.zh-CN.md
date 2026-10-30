@@ -236,6 +236,8 @@ new FlowEditor(chart, { graph, routing: { isSmart: true, shouldSpreadPorts: true
 ## 大图
 
 - 平移和滚轮缩放时，编辑器直接移动已经画好的图形，指针或滚轮停下后再清晰地重绘一次。1000 个节点时每帧平移从约 38ms 降到约 7ms（Chromium，Canvas 渲染）。
+- 滚轮缩放会平滑地过渡到目标比例，不再每格跳一下；触控板双指缩放（ctrl + 滚轮）做了加速。视图移动时忽略悬停，节点从指针下滑过不会触发完整重绘。
+- Canvas 渲染下，背景网格是一个用小图块平铺填充的矩形，不再逐点绘制。
 - 只绘制可见区域外扩一个视口范围内的节点和连线。不用编辑器时，给 `buildFlowOption` 传 `viewSize: { width, height }` 也能得到同样的裁剪。
 - 屏幕上小于 4px 的文字不绘制。
 

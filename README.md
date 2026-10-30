@@ -236,6 +236,8 @@ Above `maxSmartNodes` nodes, routing falls back to the simple router.
 ## Large graphs
 
 - While panning and wheel zooming, the editor moves the picture it already drew and redraws sharply once the pointer or wheel stops. On 1000 nodes a pan frame takes about 7 ms instead of about 38 ms (Chromium, Canvas renderer).
+- Wheel zoom eases toward its target instead of jumping once per notch, and trackpad pinches (ctrl + wheel) are sped up. Hover is ignored while the view moves, so nodes sliding under the pointer don't force full redraws.
+- On the Canvas renderer the background grid is one rectangle filled with a repeating tile, not a path with a shape per dot.
 - Only nodes and edges within one view size of the visible area are drawn. Pass `viewSize: { width, height }` to `buildFlowOption` to get the same culling without the editor.
 - Labels smaller than 4 px on screen are skipped.
 
