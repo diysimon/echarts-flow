@@ -253,6 +253,8 @@ npm run build:site        # static demo site in site/, deployed to GitHub Pages 
 
 Screenshot baselines carry the platform in their file name, because fonts render differently on each system. CI records missing Linux baselines and uploads them as the `playwright-snapshots` artifact; commit them to start comparing.
 
+To release, update `version` in `package.json` and `CHANGELOG.md`, then push a tag such as `v0.1.0`. The Release workflow runs the checks, publishes to npm with provenance (needs the `NPM_TOKEN` repository secret) and creates a GitHub release.
+
 `test/cases/` holds 16 pages covering read-only charts, shapes and status, layout direction, editing, run monitoring, JSON import/export, large graphs, multiple instances, themes, swimlanes, style options, edit options, the aurora showcase and export/interop. Every page has a Canvas / SVG switch.
 
 ## License

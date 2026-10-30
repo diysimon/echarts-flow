@@ -253,6 +253,8 @@ npm run build:site        # 生成静态 demo 站点到 site/，main 分支会�
 
 截图基线的文件名带平台后缀，因为不同系统的字体渲染不一样。CI 会录制缺失的 Linux 基线并作为 `playwright-snapshots` 产物上传，下载后提交即可开始对比。
 
+发版时修改 `package.json` 的 `version` 和 `CHANGELOG.md`，然后推送 `v0.1.0` 这样的 tag。Release 工作流会跑完检查、带 provenance 发布到 npm（需要仓库 secret `NPM_TOKEN`），并创建 GitHub Release。
+
 `test/cases/` 下有 16 个用例页面，覆盖只读展示、形状与状态、布局方向、编辑、运行监控、JSON 导入导出、大图性能、多实例、主题、泳道、样式配置、编辑配置、aurora 主题展示和导出互通。每个页面都有 Canvas / SVG 切换。
 
 ## License
