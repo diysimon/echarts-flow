@@ -6,7 +6,7 @@ import { EDGE_HIT_WIDTH } from '../theme/flowStyle';
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowEdgePayload, FlowHitInfo, RenderedEdge } from './flowPayload';
 import { projectPoint } from './pixelAlign';
-import type { ElementOption } from './renderFlowNode';
+import { MIN_LABEL_PIXELS, type ElementOption } from './renderFlowNode';
 
 /** Running dashes are in screen pixels so the flow speed looks the same at every zoom. */
 const RUNNING_DASH = [6, 4];
@@ -78,7 +78,7 @@ function buildArrow(view: EdgeView, type: ArrowType, from: Point, tip: Point, na
 
 function buildLabel(view: EdgeView, info: FlowHitInfo): ElementOption | null {
   const { edge, theme, scale } = view;
-  if (!edge.label || edge.isDraft) {
+  if (!edge.label || edge.isDraft || edge.appearance.labelFontSize * scale < MIN_LABEL_PIXELS) {
     return null;
   }
   const { appearance } = edge;

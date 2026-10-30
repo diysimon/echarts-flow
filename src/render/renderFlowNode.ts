@@ -20,6 +20,11 @@ const RING_LINE_WIDTH = 2;
 const RING_OPACITY = 0.6;
 /** Shapes with a straight left edge, where an accent bar fits. */
 const ACCENT_SHAPES = new Set<FlowNodeShape>(['process', 'subprocess']);
+/**
+ * Labels smaller than this many screen pixels are unreadable, so far zoomed
+ * out views skip them, which also saves thousands of text elements on big graphs.
+ */
+export const MIN_LABEL_PIXELS = 4;
 
 interface NodeView {
   node: ResolvedNode;
@@ -184,9 +189,12 @@ function buildDecorations(view: NodeView): ElementOption[] {
  * instead of a scaled transform, so canvas renders it crisply. Lines come
  * pre-wrapped so they match the size used for layout.
  */
-function buildLabel(view: NodeView): ElementOption {
+function buildLabel(view: NodeView): ElementOption | null {
   const { node, theme, scale } = view;
   const { appearance } = node;
+  if (appearance.fontSize * scale < MIN_LABEL_PIXELS) {
+    return null;
+  }
   return {
     type: 'text',
     name: 'label',

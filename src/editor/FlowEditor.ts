@@ -14,10 +14,21 @@ import type {
   ResolvedNode,
   Viewport,
 } from '../types';
-import { buildFlowOptionFromScene, buildFlowScene, calcFitViewport } from '../option/buildFlowOption';
+import { buildFlowOptionFromScene, buildFlowScene, calcFitViewport, CULL_MARGIN_RATIO } from '../option/buildFlowOption';
 import { calcFlowLayout, fillMissingPositions, type FlowLayoutOptions } from '../layout/calcFlowLayout';
 import { findLaneAt, type LaneLayout } from '../layout/laneLayout';
-import { calcNodesBounds, clampScale, panBy, toScreen, toWorld, zoomAt, type Bounds, type ZoomLimits } from '../geometry/viewport';
+import {
+  calcNodesBounds,
+  calcViewBounds,
+  clampScale,
+  isBoundsInside,
+  panBy,
+  toScreen,
+  toWorld,
+  zoomAt,
+  type Bounds,
+  type ZoomLimits,
+} from '../geometry/viewport';
 import { RouteCache, type EdgeRoutingOptions } from '../geometry/edgeRouter';
 import { isFlowHitInfo, type AlignGuide, type FlowHitInfo } from '../render/flowPayload';
 import { watchDevicePixelRatio } from '../render/pixelRatioSync';
@@ -31,6 +42,7 @@ import { calcRectFromPoints, mergeSelections, selectInRect } from './boxSelect';
 import { copyElements, pasteElements, type FlowClipboard } from './clipboard';
 import { FlowHistory } from './flowHistory';
 import { LabelInput } from './LabelInput';
+import { ViewTransformer } from './viewTransform';
 import { isNudgeCommand, resolveShortcut, type EditorCommand } from './keyboardShortcuts';
 import { addLane, removeLane, setNodeLanes, updateLane } from './laneOps';
 import { DEFAULT_EDIT_OPTIONS, isEditAllowed, mergeEditOptions, type FlowEditOptions } from './editOptions';
@@ -169,6 +181,12 @@ export class FlowEditor {
   private clipboard: FlowClipboard | null = null;
   /** Pastes since the last copy, so each paste lands one step further away. */
   private pasteCount = 0;
+  /** Viewport of the last full render; pan and zoom frames transform that drawing. */
+  private renderedViewport: Viewport = this.viewport;
+  private settleTimer: number | null = null;
+  /** A frame is pending that must rebuild the drawing, not just move it. */
+  private needsFullRender = false;
+  private readonly viewTransformer: ViewTransformer;
   private readonly history = new FlowHistory();
   private readonly routeCache = new RouteCache();
   private readonly labelInput: LabelInput;
@@ -187,6 +205,7 @@ export class FlowEditor {
     this.layout = options.layout ?? {};
     this.graph = this.fillLayout(options.graph ?? EMPTY_GRAPH);
     this.labelInput = new LabelInput(this.container);
+    this.viewTransformer = new ViewTransformer(chart);
     this.prepareContainer();
     this.bindEvents();
     this.fitView();
@@ -499,10 +518,12 @@ export class FlowEditor {
 
   private renderNow(isAnimated: boolean): void {
     this.cancelScheduledRender();
+    this.viewTransformer.reset();
     const interaction = this.interaction;
     const config = {
       direction: this.direction,
       viewport: this.viewport,
+      viewSize: { width: this.chart.getWidth(), height: this.chart.getHeight() },
       selection: this.selection,
       hoveredNodeId: this.hoveredNodeId,
       draftEdge: this.getDraftEdge(),
@@ -523,6 +544,7 @@ export class FlowEditor {
     this.renderedNodes = scene.nodes;
     this.renderedEdges = scene.edges;
     this.renderedLanes = scene.lanes;
+    this.renderedViewport = this.viewport;
     this.chart.setOption(buildFlowOptionFromScene(scene, config));
   }
 
@@ -654,22 +676,68 @@ export class FlowEditor {
     this.render();
   }
 
+  private cancelScheduledRender(): void {
+    this.needsFullRender = false;
+    if (this.pendingFrame !== null) {
+      cancelAnimationFrame(this.pendingFrame);
+      this.pendingFrame = null;
+    }
+    if (this.settleTimer !== null) {
+      window.clearTimeout(this.settleTimer);
+      this.settleTimer = null;
+    }
+  }
+
+  /**
+   * Pan and zoom frames move the existing drawing instead of rebuilding it.
+   * Falls back to a full render once the view leaves the culled area or the
+   * transform is unavailable.
+   */
+  private scheduleViewUpdate(): void {
+    this.requestFrame();
+  }
+
   /** Coalesces pointer-driven updates into one frame; these follow the pointer, so no animation. */
   private scheduleRender(): void {
+    this.needsFullRender = true;
+    this.requestFrame();
+  }
+
+  private requestFrame(): void {
     if (this.pendingFrame !== null) {
       return;
     }
     this.pendingFrame = requestAnimationFrame(() => {
       this.pendingFrame = null;
-      this.renderNow(false);
+      const isFull = this.needsFullRender;
+      this.needsFullRender = false;
+      if (isFull || !this.applyViewTransform()) {
+        this.renderNow(false);
+      }
     });
   }
 
-  private cancelScheduledRender(): void {
-    if (this.pendingFrame !== null) {
-      cancelAnimationFrame(this.pendingFrame);
-      this.pendingFrame = null;
+  private applyViewTransform(): boolean {
+    const width = this.chart.getWidth();
+    const height = this.chart.getHeight();
+    const drawn = calcViewBounds(this.renderedViewport, width, height, CULL_MARGIN_RATIO);
+    if (!isBoundsInside(calcViewBounds(this.viewport, width, height), drawn)) {
+      return false;
     }
+    const gridStep = this.getTheme().grid.size * this.renderedViewport.scale;
+    return this.viewTransformer.apply(this.renderedViewport, this.viewport, gridStep);
+  }
+
+  /** Wheel zoom has no end event, so redraw sharply once the wheel has been still for a moment. */
+  private scheduleSettledRender(): void {
+    const WHEEL_SETTLE_DELAY = 150;
+    if (this.settleTimer !== null) {
+      window.clearTimeout(this.settleTimer);
+    }
+    this.settleTimer = window.setTimeout(() => {
+      this.settleTimer = null;
+      this.renderNow(false);
+    }, WHEEL_SETTLE_DELAY);
   }
 
   private getScreenPoint(event: { clientX: number; clientY: number }): Point {
@@ -678,7 +746,10 @@ export class FlowEditor {
   }
 
   private setHoveredNode(nodeId: string | null): void {
-    if (this.hoveredNodeId === nodeId) {
+    // Hover only matters while idle or while picking an edge's target; skipping it
+    // during a pan keeps pan frames on the fast path.
+    const isPickingTarget = this.interaction?.type === 'connect' || this.interaction?.type === 'reconnect';
+    if (this.hoveredNodeId === nodeId || (this.interaction && !isPickingTarget)) {
       return;
     }
     this.hoveredNodeId = nodeId;
@@ -854,7 +925,10 @@ export class FlowEditor {
     if (interaction.type === 'pan') {
       this.viewport = panBy(this.viewport, screen.x - interaction.lastScreen.x, screen.y - interaction.lastScreen.y);
       interaction.lastScreen = screen;
-    } else if (interaction.type === 'connect' || interaction.type === 'reconnect') {
+      this.scheduleViewUpdate();
+      return;
+    }
+    if (interaction.type === 'connect' || interaction.type === 'reconnect') {
       interaction.cursor = toWorld(this.viewport, screen);
     } else if (interaction.type === 'box-select') {
       interaction.current = toWorld(this.viewport, screen);
@@ -1071,7 +1145,8 @@ export class FlowEditor {
     event.preventDefault();
     const factor = Math.exp(-event.deltaY * this.editOptions.wheelZoomSpeed);
     this.viewport = zoomAt(this.viewport, this.getScreenPoint(event), factor, this.getZoomLimits());
-    this.scheduleRender();
+    this.scheduleViewUpdate();
+    this.scheduleSettledRender();
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {

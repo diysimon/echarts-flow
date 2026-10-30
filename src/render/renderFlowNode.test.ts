@@ -171,6 +171,14 @@ describe('renderFlowNode', () => {
     expect(dot?.shape?.cx).toBeGreaterThan(0);
   });
 
+  it('should skip the label when zoomed out too far to read it', () => {
+    // Act: 13px font at 0.2 scale is 2.6px
+    const root = render(createParams([PROCESS_NODE], { viewport: { x: 0, y: 0, scale: 0.2 } }));
+
+    // Assert
+    expect(findChild(root, 'label')).toBeUndefined();
+  });
+
   it('should return null when data index has no node', () => {
     // Act
     const result = renderFlowNode(createParams([PROCESS_NODE], {}, 5));

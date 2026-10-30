@@ -70,12 +70,12 @@ describe('renderFlowLane', () => {
 });
 
 describe('buildGridPath', () => {
-  it('should draw one square per dot', () => {
+  it('should draw one square per dot including one spare cell to the right and bottom', () => {
     // Act
     const pathData = buildGridPath('dot', 10, 0, 0, 20, 20);
 
-    // Assert: dots at -10, 0, 10, 20 on each axis
-    expect(pathData.split('M').length - 1).toBe(16);
+    // Assert: dots at -10, 0, 10, 20, 30 on each axis
+    expect(pathData.split('M').length - 1).toBe(25);
   });
 
   it('should keep lines on half pixels so 1px lines stay crisp', () => {
@@ -83,7 +83,7 @@ describe('buildGridPath', () => {
     const pathData = buildGridPath('line', 10, 0, 0, 20, 20);
 
     // Assert
-    expect(pathData).toContain('M0.5,0');
+    expect(pathData).toContain('M0.5,-10');
   });
 });
 

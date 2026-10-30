@@ -10,7 +10,8 @@
     <h1 class="case__title">07 大图性能</h1>
     <p class="case__desc">
       按层级生成 N 个节点的图（每层随节点数增长，约 1.3 倍连线），记录自动布局和首次渲染耗时。
-      生成后可以拖动节点、平移、缩放，感受交互帧率。
+      生成后可以拖动节点、平移、缩放，感受交互帧率。平移和滚轮缩放时编辑器直接移动已画好的图形，不重建，
+      停下后再完整重绘；放大后只画视口附近的节点；缩得太小、文字小于 4px 时不画文字。
     </p>
     <div class="case__toolbar">
       <button class="case__button" type="button" data-count="50">50 节点</button>

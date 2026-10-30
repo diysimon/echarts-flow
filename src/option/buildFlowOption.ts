@@ -3,7 +3,17 @@ import type { DraftEdge, EdgeRoute, FlowDirection, FlowGraph, FlowSelection, Res
 import { calcDraftRoute, calcPolylineMidpoint } from '../geometry/edgeRoute';
 import { routeEdges, type EdgeRoutingOptions, type RoutableEdge, type RouteCache } from '../geometry/edgeRouter';
 import { resolveNode } from '../geometry/nodeShape';
-import { calcNodesBounds, calcRectsBounds, fitBounds, IDENTITY_VIEWPORT, mergeBounds, type ZoomLimits } from '../geometry/viewport';
+import {
+  calcNodesBounds,
+  calcRectsBounds,
+  calcViewBounds,
+  fitBounds,
+  IDENTITY_VIEWPORT,
+  isBoundsOverlapping,
+  mergeBounds,
+  type Bounds,
+  type ZoomLimits,
+} from '../geometry/viewport';
 import { fillMissingPositions, type FlowLayoutOptions } from '../layout/calcFlowLayout';
 import { calcLaneLayout, getNodeLaneId, type LaneLayout, type Rect } from '../layout/laneLayout';
 import { resolveEdgeAppearance } from '../style/resolveAppearance';
@@ -56,6 +66,11 @@ export interface FlowOptionConfig {
   guides?: AlignGuide[];
   /** Edge whose two ends get draggable handles for reconnecting. */
   handleEdgeId?: string | null;
+  /**
+   * Chart size in pixels. When set, only nodes and edges within one view size
+   * of the visible area are drawn, which keeps zoomed-in large graphs fast.
+   */
+  viewSize?: { width: number; height: number };
 }
 
 export interface FlowOption extends EChartsCoreOption {
@@ -76,6 +91,25 @@ const EDGE_SERIES_Z = 2;
 const NODE_SERIES_Z = 3;
 const OVERLAY_SERIES_Z = 4;
 const EMPTY_SELECTION: FlowSelection = { nodeIds: [], edgeIds: [] };
+/** Culling keeps one view size around the visible area, so a short pan never reaches undrawn space. */
+export const CULL_MARGIN_RATIO = 1;
+
+function calcEdgeBounds(edge: RenderedEdge): Bounds {
+  const xs = edge.points.map((point) => point.x);
+  const ys = edge.points.map((point) => point.y);
+  return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
+}
+
+/** Drops nodes and edges far outside the view. The draft edge always stays. */
+function cullScene(scene: FlowScene, viewport: Viewport, viewSize: FlowOptionConfig['viewSize']): Pick<FlowScene, 'nodes' | 'edges'> {
+  if (!viewSize) {
+    return scene;
+  }
+  const area = calcViewBounds(viewport, viewSize.width, viewSize.height, CULL_MARGIN_RATIO);
+  const nodes = scene.nodes.filter((node) => isBoundsOverlapping(calcNodesBounds([node]) as Bounds, area));
+  const edges = scene.edges.filter((edge) => edge.isDraft || isBoundsOverlapping(calcEdgeBounds(edge), area));
+  return { nodes, edges };
+}
 
 function buildEdgeHandles(edges: RenderedEdge[], edgeId: string | null | undefined): EdgeHandle[] {
   const edge = edgeId ? edges.find((item) => item.id === edgeId && !item.isDraft) : undefined;
@@ -188,9 +222,10 @@ export function buildFlowOption(graph: FlowGraph, config: FlowOptionConfig = {})
 }
 
 export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionConfig = {}): FlowOption {
-  const { nodes, edges, lanes, theme } = scene;
+  const { lanes, theme } = scene;
   const viewport = config.viewport ?? IDENTITY_VIEWPORT;
   const selection = config.selection ?? EMPTY_SELECTION;
+  const { nodes, edges } = cullScene(scene, viewport, config.viewSize);
 
   const gridPayload: FlowGridPayload = { viewport, theme };
   const lanePayload: FlowLanePayload = { lanes: lanes.lanes, title: lanes.title, viewport, theme };

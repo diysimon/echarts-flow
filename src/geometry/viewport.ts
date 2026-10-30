@@ -78,6 +78,21 @@ export function mergeBounds(a: Bounds | null, b: Bounds | null): Bounds | null {
   return { minX: Math.min(a.minX, b.minX), minY: Math.min(a.minY, b.minY), maxX: Math.max(a.maxX, b.maxX), maxY: Math.max(a.maxY, b.maxY) };
 }
 
+/** World area shown in a view of the given pixel size, grown by `marginRatio` view sizes on every side. */
+export function calcViewBounds(viewport: Viewport, width: number, height: number, marginRatio = 0): Bounds {
+  const topLeft = toWorld(viewport, { x: -width * marginRatio, y: -height * marginRatio });
+  const bottomRight = toWorld(viewport, { x: width * (1 + marginRatio), y: height * (1 + marginRatio) });
+  return { minX: topLeft.x, minY: topLeft.y, maxX: bottomRight.x, maxY: bottomRight.y };
+}
+
+export function isBoundsInside(inner: Bounds, outer: Bounds): boolean {
+  return inner.minX >= outer.minX && inner.minY >= outer.minY && inner.maxX <= outer.maxX && inner.maxY <= outer.maxY;
+}
+
+export function isBoundsOverlapping(a: Bounds, b: Bounds): boolean {
+  return a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
+}
+
 /** Viewport that centers the bounds; never zooms in past 1:1 so small graphs stay readable. */
 export function fitBounds(
   bounds: Bounds | null,

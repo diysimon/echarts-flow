@@ -190,6 +190,34 @@ describe('buildFlowOption', () => {
     expect(getPayloads(option).overlay.edgeHandles).toEqual([]);
   });
 
+  it('should drop nodes far outside the view when a view size is given', () => {
+    // Arrange
+    const graph: FlowGraph = {
+      nodes: [
+        { id: 'near', label: 'Near', shape: 'process', x: 100, y: 100 },
+        { id: 'far', label: 'Far', shape: 'process', x: 5000, y: 100 },
+      ],
+      edges: [],
+    };
+
+    // Act
+    const option = buildFlowOption(graph, { viewSize: { width: 800, height: 600 } });
+
+    // Assert
+    expect(getPayloads(option).node.nodes.map((node) => node.id)).toEqual(['near']);
+  });
+
+  it('should keep nodes within one view size of the visible area', () => {
+    // Arrange: 1000 is past the 800px view but inside the margin
+    const graph: FlowGraph = { nodes: [{ id: 'margin', label: 'M', shape: 'process', x: 1000, y: 100 }], edges: [] };
+
+    // Act
+    const option = buildFlowOption(graph, { viewSize: { width: 800, height: 600 } });
+
+    // Assert
+    expect(getPayloads(option).node.nodes).toHaveLength(1);
+  });
+
   it('should end the draft at the node when the draft is reversed', () => {
     // Act
     const option = buildFlowOption(createGraph(), { draftEdge: { sourceId: 'b', target: { x: 500, y: 500 }, isReversed: true } });
