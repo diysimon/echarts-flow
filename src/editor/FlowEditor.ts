@@ -525,6 +525,7 @@ export class FlowEditor {
       viewport: this.viewport,
       viewSize: { width: this.chart.getWidth(), height: this.chart.getHeight() },
       pixelRatio: this.chart.getDevicePixelRatio(),
+      renderer: this.chart.getZr().painter.getType() === 'svg' ? 'svg' as const : 'canvas' as const,
       selection: this.selection,
       hoveredNodeId: this.hoveredNodeId,
       draftEdge: this.getDraftEdge(),

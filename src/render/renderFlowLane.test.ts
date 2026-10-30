@@ -112,4 +112,44 @@ describe('renderFlowGrid', () => {
     // Assert
     expect(result).toBeNull();
   });
+
+  describe('grid fill', () => {
+    const theme = createFlowTheme(lightTheme, { grid: { type: 'dot', size: 20 } });
+    const findGrid = (result: unknown) =>
+      (result as { children: { name: string; type: string; style: { fill: unknown } }[] }).children.find((child) => child.name === 'grid');
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    function stubCanvas(): void {
+      const createElement = document.createElement.bind(document);
+      vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const element = createElement(tag);
+        if (tag === 'canvas') {
+          (element as HTMLCanvasElement).getContext = (() => ({ fillRect: vi.fn(), fillStyle: '' })) as unknown as HTMLCanvasElement['getContext'];
+        }
+        return element;
+      });
+    }
+
+    it('should fill one rectangle with a repeating tile when patterns are allowed', () => {
+      // Arrange
+      stubCanvas();
+
+      // Act
+      const grid = findGrid(render({ viewport: { x: 3, y: 7, scale: 1.3 }, theme, shouldUsePattern: true }));
+
+      // Assert
+      expect([grid?.type, (grid?.style.fill as { repeat?: string }).repeat]).toEqual(['rect', 'repeat']);
+    });
+
+    it('should draw the grid as a path when patterns are not allowed', () => {
+      // Act
+      const grid = findGrid(render({ viewport: { x: 0, y: 0, scale: 1 }, theme }));
+
+      // Assert
+      expect(grid?.type).toBe('path');
+    });
+  });
 });

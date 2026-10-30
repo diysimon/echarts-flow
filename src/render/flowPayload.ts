@@ -54,6 +54,12 @@ export interface FlowLanePayload extends PixelGridPayload {
 export interface FlowGridPayload extends PixelGridPayload {
   viewport: Viewport;
   theme: FlowTheme;
+  /**
+   * Fill the grid with a repeating tile instead of drawing every dot. Much
+   * faster on canvas; the SVG renderer cannot place such a pattern, so it
+   * keeps the path.
+   */
+  shouldUsePattern?: boolean;
 }
 
 /**

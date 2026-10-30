@@ -77,6 +77,12 @@ export interface FlowOptionConfig {
    * fractional ratios such as 90% or 110% browser zoom. Defaults to 1.
    */
   pixelRatio?: number;
+  /**
+   * Renderer of the chart. With 'canvas' the background grid is filled with a
+   * repeating tile, which paints far faster than one path per dot. Left unset,
+   * the grid is a path, which works with both renderers.
+   */
+  renderer?: 'canvas' | 'svg';
 }
 
 export interface FlowOption extends EChartsCoreOption {
@@ -234,7 +240,7 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
   const { nodes, edges } = cullScene(scene, viewport, config.viewSize);
   const pixelRatio = config.pixelRatio ?? 1;
 
-  const gridPayload: FlowGridPayload = { viewport, theme, pixelRatio };
+  const gridPayload: FlowGridPayload = { viewport, theme, pixelRatio, shouldUsePattern: config.renderer === 'canvas' };
   const lanePayload: FlowLanePayload = { lanes: lanes.lanes, title: lanes.title, viewport, theme, pixelRatio };
   const edgePayload: FlowEdgePayload = { edges, viewport, selectedIds: selection.edgeIds, theme, pixelRatio };
   const nodePayload: FlowNodePayload = {
