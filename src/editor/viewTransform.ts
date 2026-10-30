@@ -70,10 +70,10 @@ export class ViewTransformer {
     return true;
   }
 
-  /** Puts every series back in place; call before a full render. */
-  reset(): void {
+  /** Puts every series back in place; call before a full render. Returns whether anything was moved. */
+  reset(): boolean {
     if (!this.isTransformed) {
-      return;
+      return false;
     }
     this.isTransformed = false;
     this.findSeriesGroups()?.forEach((group, seriesId) => {
@@ -83,6 +83,7 @@ export class ViewTransformer {
         setTransform(group, 0, 0, 1);
       }
     });
+    return true;
   }
 
   /** The grid repeats every cell, so sliding it by the offset modulo one cell looks the same as moving it. */

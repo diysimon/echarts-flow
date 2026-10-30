@@ -525,7 +525,11 @@ export class FlowEditor {
 
   private renderNow(isAnimated: boolean): void {
     this.cancelScheduledRender();
-    this.viewTransformer.reset();
+    // After pan or zoom frames the series sit at their old place with a transform.
+    // Resetting snaps them back there, so an animated update would visibly slide
+    // everything from the old view to the new one; draw the new view directly.
+    const wasTransformed = this.viewTransformer.reset();
+    const shouldAnimate = isAnimated && !wasTransformed;
     const interaction = this.interaction;
     const config = {
       direction: this.direction,
@@ -538,7 +542,7 @@ export class FlowEditor {
       draftEdge: this.getDraftEdge(),
       // Ports only appear when the user may draw connections.
       isEditable: isEditAllowed(this.editOptions, 'canConnect'),
-      animation: isAnimated,
+      animation: shouldAnimate,
       theme: this.theme,
       layout: this.layout,
       routing: this.getRoutingOptions(),
@@ -1014,7 +1018,8 @@ export class FlowEditor {
     if (interaction?.type === 'reconnect' && this.hoveredNodeId) {
       this.reconnectEdge(interaction.edgeId, interaction.end, this.hoveredNodeId);
     }
-    this.render();
+    // A pan ends exactly where the pointer left it; animating would make the view drift.
+    this.renderNow(interaction?.type !== 'pan');
   };
 
   /** Dropping a node into another lane's band moves it into that lane. */

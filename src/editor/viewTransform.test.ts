@@ -90,6 +90,27 @@ describe('ViewTransformer', () => {
     expect([nodeGroup.x, nodeGroup.y, nodeGroup.scaleX]).toEqual([0, 0, 1]);
   });
 
+  it('should report that it moved something when reset after a transform', () => {
+    // Arrange
+    const { chart } = createChart();
+    const transformer = new ViewTransformer(chart);
+    transformer.apply(RENDERED, { x: 35, y: -12, scale: 1 }, 20);
+
+    // Act
+    const wasTransformed = transformer.reset();
+
+    // Assert
+    expect(wasTransformed).toBe(true);
+  });
+
+  it('should report that nothing moved when reset without a transform', () => {
+    // Act
+    const wasTransformed = new ViewTransformer(createChart().chart).reset();
+
+    // Assert
+    expect(wasTransformed).toBe(false);
+  });
+
   it('should report failure when the chart internals are missing', () => {
     // Arrange
     const chart = { getZr: () => ({ storage: {} }) } as unknown as EChartsType;
