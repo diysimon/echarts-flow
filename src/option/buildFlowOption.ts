@@ -83,6 +83,12 @@ export interface FlowOptionConfig {
    * the grid is a path, which works with both renderers.
    */
   renderer?: 'canvas' | 'svg';
+  /**
+   * Skip node and edge labels whose on-screen font size is below this many
+   * pixels. Far zoomed out, such labels are unreadable, and skipping them
+   * saves thousands of text elements on big graphs. Defaults to 0: always draw.
+   */
+  minLabelPixels?: number;
 }
 
 export interface FlowOption extends EChartsCoreOption {
@@ -242,7 +248,8 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
 
   const gridPayload: FlowGridPayload = { viewport, theme, pixelRatio, shouldUsePattern: config.renderer === 'canvas' };
   const lanePayload: FlowLanePayload = { lanes: lanes.lanes, title: lanes.title, viewport, theme, pixelRatio };
-  const edgePayload: FlowEdgePayload = { edges, viewport, selectedIds: selection.edgeIds, theme, pixelRatio };
+  const minLabelPixels = config.minLabelPixels ?? 0;
+  const edgePayload: FlowEdgePayload = { edges, viewport, selectedIds: selection.edgeIds, theme, pixelRatio, minLabelPixels };
   const nodePayload: FlowNodePayload = {
     nodes,
     viewport,
@@ -251,6 +258,7 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
     isEditable: config.isEditable ?? false,
     theme,
     pixelRatio,
+    minLabelPixels,
   };
   const overlayPayload: FlowOverlayPayload = {
     viewport,

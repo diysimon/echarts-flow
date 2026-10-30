@@ -7,7 +7,7 @@ import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowEdgePayload, FlowHitInfo, RenderedEdge } from './flowPayload';
 import { isTransparent } from './flowColor';
 import { projectPoint, snapLineWidth, snapToPixel } from './pixelAlign';
-import { MIN_LABEL_PIXELS, type ElementOption } from './renderFlowNode';
+import type { ElementOption } from './renderFlowNode';
 
 /** Running dashes are in screen pixels so the flow speed looks the same at every zoom. */
 const RUNNING_DASH = [6, 4];
@@ -27,6 +27,7 @@ interface EdgeView {
   color: string;
   lineWidth: number;
   pixelRatio: number;
+  minLabelPixels: number;
 }
 
 function calcEdgeColor(edge: RenderedEdge, isSelected: boolean, theme: FlowTheme): string {
@@ -93,7 +94,7 @@ function buildLabelShadow(view: EdgeView) {
 
 function buildLabel(view: EdgeView, info: FlowHitInfo): ElementOption | null {
   const { edge, theme, scale } = view;
-  if (!edge.label || edge.isDraft || edge.appearance.labelFontSize * scale < MIN_LABEL_PIXELS) {
+  if (!edge.label || edge.isDraft || edge.appearance.labelFontSize * scale < view.minLabelPixels) {
     return null;
   }
   const { appearance } = edge;
@@ -133,7 +134,7 @@ export function renderFlowEdge(params: CustomSeriesRenderItemParams): CustomSeri
   const isSelected = payload.selectedIds.includes(edge.id);
   const pixelRatio = payload.pixelRatio ?? 1;
   const lineWidth = snapLineWidth(isSelected ? appearance.activeLineWidth : appearance.lineWidth, pixelRatio);
-  const view: EdgeView = { edge, theme, scale, color: calcEdgeColor(edge, isSelected, theme), lineWidth, pixelRatio };
+  const view: EdgeView = { edge, theme, scale, color: calcEdgeColor(edge, isSelected, theme), lineWidth, pixelRatio, minLabelPixels: payload.minLabelPixels ?? 0 };
   const info: FlowHitInfo = { role: 'edge', edgeId: edge.id };
 
   // Project without the viewport offset; the group applies it as a whole pixel.

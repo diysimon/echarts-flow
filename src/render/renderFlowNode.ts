@@ -20,11 +20,6 @@ const RING_LINE_WIDTH = 2;
 const RING_OPACITY = 0.6;
 /** Shapes with a straight left edge, where an accent bar fits. */
 const ACCENT_SHAPES = new Set<FlowNodeShape>(['process', 'subprocess']);
-/**
- * Labels smaller than this many screen pixels are unreadable, so far zoomed
- * out views skip them, which also saves thousands of text elements on big graphs.
- */
-export const MIN_LABEL_PIXELS = 4;
 
 interface NodeView {
   node: ResolvedNode;
@@ -37,6 +32,8 @@ interface NodeView {
   isHovered: boolean;
   /** Device pixels per CSS pixel; positions and strokes snap to this grid. */
   pixelRatio: number;
+  /** Labels whose on-screen font size is below this are skipped. */
+  minLabelPixels: number;
 }
 
 /** Ring styles mark selection with a halo, so the border keeps its own color. */
@@ -194,7 +191,7 @@ function buildDecorations(view: NodeView): ElementOption[] {
 function buildLabel(view: NodeView): ElementOption | null {
   const { node, theme, scale } = view;
   const { appearance } = node;
-  if (appearance.fontSize * scale < MIN_LABEL_PIXELS) {
+  if (appearance.fontSize * scale < view.minLabelPixels) {
     return null;
   }
   return {
@@ -276,6 +273,7 @@ export function renderFlowNode(params: CustomSeriesRenderItemParams): CustomSeri
     isSelected: payload.selectedIds.includes(node.id),
     isHovered: payload.hoveredId === node.id,
     pixelRatio,
+    minLabelPixels: payload.minLabelPixels ?? 0,
   };
   const shouldShowPorts = payload.isEditable && view.isHovered;
   const children = [

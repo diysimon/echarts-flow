@@ -172,9 +172,17 @@ describe('renderFlowNode', () => {
     expect(dot?.shape?.cx).toBeGreaterThan(0);
   });
 
-  it('should skip the label when zoomed out too far to read it', () => {
+  it('should keep the label when zoomed far out by default', () => {
     // Act: 13px font at 0.2 scale is 2.6px
     const root = render(createParams([PROCESS_NODE], { viewport: { x: 0, y: 0, scale: 0.2 } }));
+
+    // Assert
+    expect(findChild(root, 'label')).toBeDefined();
+  });
+
+  it('should skip the label when it is smaller than minLabelPixels', () => {
+    // Act: 13px font at 0.2 scale is 2.6px
+    const root = render(createParams([PROCESS_NODE], { viewport: { x: 0, y: 0, scale: 0.2 }, minLabelPixels: 4 }));
 
     // Assert
     expect(findChild(root, 'label')).toBeUndefined();

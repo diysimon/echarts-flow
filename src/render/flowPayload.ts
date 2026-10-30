@@ -20,7 +20,12 @@ interface PixelGridPayload {
   pixelRatio?: number;
 }
 
-export interface FlowNodePayload extends PixelGridPayload {
+interface LabelPayload {
+  /** Skip labels whose on-screen font size is below this many pixels. Defaults to 0: always draw. */
+  minLabelPixels?: number;
+}
+
+export interface FlowNodePayload extends PixelGridPayload, LabelPayload {
   nodes: ResolvedNode[];
   viewport: Viewport;
   selectedIds: string[];
@@ -36,7 +41,7 @@ export interface RenderedEdge extends ResolvedEdge {
   isRunning: boolean;
 }
 
-export interface FlowEdgePayload extends PixelGridPayload {
+export interface FlowEdgePayload extends PixelGridPayload, LabelPayload {
   edges: RenderedEdge[];
   viewport: Viewport;
   selectedIds: string[];
