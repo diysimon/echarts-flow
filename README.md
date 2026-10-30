@@ -235,9 +235,9 @@ Above `maxSmartNodes` nodes, routing falls back to the simple router.
 
 ## Large graphs
 
-- While panning and wheel zooming, the editor moves the picture it already drew and redraws sharply once the pointer or wheel stops. On 1000 nodes a pan frame takes about 7 ms instead of about 38 ms (Chromium, Canvas renderer).
+- While panning and wheel zooming, the editor moves the picture it already drew and redraws sharply once the pointer or wheel stops, instead of rebuilding the chart on every frame.
 - Wheel zoom eases toward its target instead of jumping once per notch, and trackpad pinches (ctrl + wheel) are sped up. Hover is ignored while the view moves, so nodes sliding under the pointer don't force full redraws.
-- Above 250 nodes, pan and zoom frames move the finished canvas with a CSS transform, so those frames draw nothing. The editor redraws when less than 80% of the view is covered by the old picture; zooming out draws ahead so it redraws less often. The container gets `overflow: hidden` if it had none.
+- Above 250 nodes, pan and zoom frames move the finished canvas with a CSS transform, so those frames draw nothing. On 1000 nodes a zoom-in gesture spends about 4 ms of script in total and sweeping the pointer across the graph redraws once or twice (Chromium on Apple M2, Canvas renderer, device pixel ratio 2). The editor redraws when less than 80% of the view is covered by the old picture; zooming out draws ahead so it redraws less often. The container gets `overflow: hidden` if it had none.
 - When a full redraw takes longer than 12 ms, hover waits until the pointer rests for 90 ms, so sweeping the pointer across a big graph redraws once.
 - On the Canvas renderer the background grid is one rectangle filled with a repeating tile, not a path with a shape per dot.
 - Only nodes and edges within one view size of the visible area are drawn. Pass `viewSize: { width, height }` to `buildFlowOption` to get the same culling without the editor.

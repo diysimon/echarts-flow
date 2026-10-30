@@ -30,7 +30,10 @@ First release.
   import and export (`fromDrawio`, `toDrawio`).
 - Sharp text: whole-pixel text and strokes, even line heights, and
   `watchDevicePixelRatio` for browser zoom and display changes.
-- Large graph performance: transformed pan and zoom frames, view culling and
-  skipping unreadably small labels.
+- Large graph performance: transformed pan and zoom frames, a CSS-moved bitmap
+  above 250 nodes, eased wheel zoom, a tiled background grid, view culling and
+  hover redraws that wait for the pointer to rest on slow scenes.
+- Labels are drawn at every zoom level; `minLabelPixels` skips labels below a
+  chosen on-screen size.
 
 [0.1.0]: https://github.com/diysimon/echarts-flow/releases/tag/v0.1.0
