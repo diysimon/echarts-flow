@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowGraph, type FlowStatus } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
 
 const STEP_DELAY = 900;
 
@@ -58,7 +57,7 @@ const AGENT_FLOW: FlowGraph = {
 };
 
 function createEditor(selector: string, graph: FlowGraph, theme: 'aurora' | 'aurora-dark', direction: 'TB' | 'LR'): FlowEditor {
-  const chart = init(getElement<HTMLElement>(selector));
+  const chart = initCaseChart(getElement<HTMLElement>(selector));
   window.addEventListener('resize', () => chart.resize());
   return new FlowEditor(chart, { graph, theme, direction });
 }

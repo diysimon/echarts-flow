@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { calcFlowLayout, FlowEditor, type FlowEdge, type FlowGraph, type FlowNode, type FlowNodeShape } from '../../src/index';
-import { getElement } from './shared/caseUtils';
+import { getElement, initCaseChart } from './shared/caseUtils';
 
 /** Every n-th node gets a second outgoing edge, giving about 1.3 edges per node. */
 const EXTRA_EDGE_INTERVAL = 3;
@@ -28,7 +27,7 @@ function generateGraph(nodeCount: number): FlowGraph {
 }
 
 const statsLabel = getElement<HTMLElement>('#stats');
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart);
 
 function loadGraph(nodeCount: number): void {

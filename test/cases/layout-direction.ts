@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowDirection, type FlowGraph } from '../../src/index';
-import { getElement } from './shared/caseUtils';
+import { getElement, initCaseChart } from './shared/caseUtils';
 
 const RETRY_GRAPH: FlowGraph = {
   nodes: [
@@ -27,7 +26,7 @@ const RETRY_GRAPH: FlowGraph = {
 };
 
 function createEditor(selector: string, direction: FlowDirection): FlowEditor {
-  const chart = init(getElement<HTMLElement>(selector));
+  const chart = initCaseChart(getElement<HTMLElement>(selector));
   window.addEventListener('resize', () => chart.resize());
   return new FlowEditor(chart, { graph: RETRY_GRAPH, direction });
 }

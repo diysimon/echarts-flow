@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowGraph, type FlowThemeName } from '../../src/index';
-import { bindButton } from './shared/caseUtils';
+import { bindButton, initCaseChart } from './shared/caseUtils';
 
 const SHOWCASE_GRAPH: FlowGraph = {
   nodes: [
@@ -22,7 +21,7 @@ const SHOWCASE_GRAPH: FlowGraph = {
 };
 
 const editors = Array.from(document.querySelectorAll<HTMLElement>('[data-theme]')).map((container) => {
-  const chart = init(container);
+  const chart = initCaseChart(container);
   window.addEventListener('resize', () => chart.resize());
   const editor = new FlowEditor(chart, { graph: SHOWCASE_GRAPH, theme: container.dataset.theme as FlowThemeName });
   editor.setSelection({ nodeIds: ['run'], edgeIds: [] });

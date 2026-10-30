@@ -1,12 +1,20 @@
 import { init, use } from 'echarts/core';
 import { CustomChart } from 'echarts/charts';
-import { CanvasRenderer } from 'echarts/renderers';
+import { CanvasRenderer, SVGRenderer } from 'echarts/renderers';
 import { FlowEditor, flowExtension, type FlowGraph, type FlowNodeShape, type FlowStatus, type FlowThemeName } from '../src/index';
 import { APPROVAL_GRAPH } from './sampleGraph';
 
-use([CustomChart, CanvasRenderer, flowExtension]);
+use([CustomChart, CanvasRenderer, SVGRenderer, flowExtension]);
 
 const SIMULATION_STEP_DELAY = 1200;
+const RENDERER_PARAM = 'renderer';
+
+type DemoRenderer = 'canvas' | 'svg';
+
+/** Renderer chosen with `?renderer=svg`; Canvas by default. */
+function getDemoRenderer(): DemoRenderer {
+  return new URLSearchParams(window.location.search).get(RENDERER_PARAM) === 'svg' ? 'svg' : 'canvas';
+}
 
 function getElement<T extends HTMLElement>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -22,7 +30,7 @@ const undoButton = getElement<HTMLButtonElement>('#undo-button');
 const redoButton = getElement<HTMLButtonElement>('#redo-button');
 const editableToggle = getElement<HTMLInputElement>('#editable-toggle');
 
-const chart = init(chartContainer);
+const chart = init(chartContainer, null, { renderer: getDemoRenderer() });
 const editor = new FlowEditor(chart, { graph: APPROVAL_GRAPH, onChange: updatePanel });
 
 function updatePanel(graph: FlowGraph = editor.getGraph()): void {
@@ -93,5 +101,13 @@ getElement<HTMLElement>('.flow-demo__toolbar').addEventListener('click', handleT
 editableToggle.addEventListener('change', () => editor.setEditable(editableToggle.checked));
 const themeSelect = getElement<HTMLSelectElement>('#theme-select');
 themeSelect.addEventListener('change', () => editor.setTheme(themeSelect.value as FlowThemeName));
+const rendererSelect = getElement<HTMLSelectElement>('#renderer-select');
+rendererSelect.value = getDemoRenderer();
+// ECharts fixes the renderer at init, so switching reloads the page with the new choice.
+rendererSelect.addEventListener('change', () => {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RENDERER_PARAM, rendererSelect.value);
+  window.location.assign(url.toString());
+});
 window.addEventListener('resize', () => chart.resize());
 updatePanel();

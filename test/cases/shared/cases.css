@@ -12,6 +12,9 @@ body {
 }
 
 .case__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 8px;
   font-size: 13px;
 }
@@ -19,6 +22,37 @@ body {
 .case__nav a {
   color: #3370ff;
   text-decoration: none;
+}
+
+.case__renderer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #646a73;
+}
+
+.case__renderer .case__renderer-option {
+  margin-left: 4px;
+  padding: 2px 10px;
+  color: #1f2329;
+  background: #ffffff;
+  border: 1px solid #d0d3d6;
+  border-radius: 4px;
+}
+
+.case__renderer .case__renderer-option:hover {
+  color: #3370ff;
+  border-color: #3370ff;
+}
+
+.case__renderer .case__renderer-option--active {
+  color: #ffffff;
+  background: #3370ff;
+  border-color: #3370ff;
+}
+
+.case__renderer .case__renderer-option--active:hover {
+  color: #ffffff;
 }
 
 .case__title {

@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { createFlowTheme, FlowEditor, resolveFlowTheme, type FlowEdge, type FlowGraph, type FlowNode, type FlowThemeName } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
 
 type NodeSpec = [id: string, label: string, shape: FlowNode['shape'], laneId: string];
 type EdgeSpec = [source: string, target: string, label?: string];
@@ -82,7 +81,7 @@ const RELEASE_FLOW: FlowGraph = {
 const themeSelect = getElement<HTMLSelectElement>('#theme-select');
 const curveToggle = getElement<HTMLInputElement>('#curve-toggle');
 const compactToggle = getElement<HTMLInputElement>('#compact-toggle');
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart, {
   graph: RELEASE_FLOW,
   direction: 'TB',

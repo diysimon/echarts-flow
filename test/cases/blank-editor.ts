@@ -1,11 +1,10 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowNodeShape } from '../../src/index';
-import { bindButton, createLogger, getElement } from './shared/caseUtils';
+import { bindButton, createLogger, getElement, initCaseChart } from './shared/caseUtils';
 
 const REQUIRED_SELECTION_COUNT = 2;
 
 const log = createLogger(getElement<HTMLElement>('#log'));
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart, {
   onChange: (graph) => log(`onChange: ${graph.nodes.length} 个节点, ${graph.edges.length} 条连线`),
   onSelectionChange: (selection) => log(`onSelectionChange: ${JSON.stringify(selection)}`),

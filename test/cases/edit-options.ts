@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { DEFAULT_EDIT_OPTIONS, FlowEditor, type FlowEditOptions, type FlowGraph, type FlowSelection } from '../../src/index';
-import { bindButton, createLogger, getElement } from './shared/caseUtils';
+import { bindButton, createLogger, getElement, initCaseChart } from './shared/caseUtils';
 
 type BooleanOption = {
   [K in keyof FlowEditOptions]-?: FlowEditOptions[K] extends boolean ? K : never;
@@ -70,7 +69,7 @@ function beforeDelete(selection: FlowSelection): boolean {
   return window.confirm(`删除 ${selection.nodeIds.length} 个节点、${selection.edgeIds.length} 条连线？`);
 }
 
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart, {
   graph: GRAPH,
   edit: { validateConnection, beforeDelete },

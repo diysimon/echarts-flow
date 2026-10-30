@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowGraph } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
 
 const SAMPLE_GRAPH: FlowGraph = {
   nodes: [
@@ -20,7 +19,7 @@ const SAMPLE_GRAPH: FlowGraph = {
 const textarea = getElement<HTMLTextAreaElement>('#json');
 const statusLabel = getElement<HTMLElement>('#status');
 const stripToggle = getElement<HTMLInputElement>('#strip-toggle');
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 
 function showGraph(graph: FlowGraph): void {
   textarea.value = JSON.stringify(graph, null, 2);

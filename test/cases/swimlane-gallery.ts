@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowDirection, type FlowThemeName } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
 import { SWIMLANE_SCENARIOS, type SwimlaneScenario } from './shared/swimlaneScenarios';
 
 const scenarioSelect = getElement<HTMLSelectElement>('#scenario-select');
@@ -10,7 +9,7 @@ const compactToggle = getElement<HTMLInputElement>('#compact-toggle');
 const smartToggle = getElement<HTMLInputElement>('#smart-toggle');
 const spreadToggle = getElement<HTMLInputElement>('#spread-toggle');
 const descriptionLabel = getElement<HTMLElement>('#scenario-desc');
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 
 let editor: FlowEditor | null = null;
 

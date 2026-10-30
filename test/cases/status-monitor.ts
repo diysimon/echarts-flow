@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowGraph, type FlowStatus } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
 
 const STEP_DELAY = 1000;
 
@@ -39,7 +38,7 @@ const SCRIPT: { title: string; statuses: Record<string, FlowStatus> }[] = [
 
 const stepLabel = getElement<HTMLElement>('#step');
 const editableToggle = getElement<HTMLInputElement>('#editable-toggle');
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart, { graph: PIPELINE_GRAPH, isEditable: false });
 
 let timer: number | null = null;

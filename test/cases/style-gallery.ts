@@ -1,4 +1,3 @@
-import { init } from 'echarts/core';
 import {
   createFlowTheme,
   FlowEditor,
@@ -14,7 +13,7 @@ import {
   type FlowNodeStyle,
   type FlowThemeName,
 } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
 
 const SHAPES: FlowNodeShape[] = ['start', 'end', 'process', 'decision', 'io', 'circle', 'hexagon', 'document', 'database', 'subprocess', 'text'];
 const ARROWS: ArrowType[] = ['triangle', 'triangle-open', 'vee', 'circle', 'circle-open', 'diamond', 'diamond-open', 'none'];
@@ -80,7 +79,7 @@ const CUSTOM_THEME = createFlowTheme(lightTheme, {
 });
 
 const themeSelect = getElement<HTMLSelectElement>('#theme-select');
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart, { graph: buildGalleryGraph(), shouldSnapToGrid: false });
 
 themeSelect.addEventListener('change', () => {

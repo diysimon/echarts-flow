@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { buildFlowOption, calcFitViewport, watchDevicePixelRatio, type FlowGraph, type FlowHitInfo } from '../../src/index';
-import { createLogger, getElement } from './shared/caseUtils';
+import { createLogger, getElement, initCaseChart } from './shared/caseUtils';
 
 const ORDER_GRAPH: FlowGraph = {
   nodes: [
@@ -23,7 +22,7 @@ const ORDER_GRAPH: FlowGraph = {
 
 const container = getElement<HTMLElement>('#chart');
 const log = createLogger(getElement<HTMLElement>('#log'));
-const chart = init(container);
+const chart = initCaseChart(container);
 // Without FlowEditor, keep the canvas sharp across browser zoom and display changes manually.
 watchDevicePixelRatio(chart);
 

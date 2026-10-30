@@ -1,6 +1,5 @@
-import { init } from 'echarts/core';
 import { FlowEditor, type FlowGraph } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
 
 const LANE_SIZE = 180;
 const GROW_STEP = 40;
@@ -46,7 +45,7 @@ const ORDER_SWIMLANE: FlowGraph = {
   ],
 };
 
-const chart = init(getElement<HTMLElement>('#chart'));
+const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart, { graph: ORDER_SWIMLANE, direction: 'LR', theme: 'whiteboard' });
 
 bindButton('#layout-button', () => editor.autoLayout());
