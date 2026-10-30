@@ -9,6 +9,7 @@ import { calcLaneLayout, getNodeLaneId, type LaneLayout } from '../layout/laneLa
 import { resolveEdgeAppearance } from '../style/resolveAppearance';
 import type { FlowTheme, FlowThemeName } from '../theme/flowTheme';
 import { resolveFlowTheme } from '../theme/themeRegistry';
+import { toZrColor } from '../render/flowColor';
 import {
   DRAFT_EDGE_ID,
   FLOW_EDGE_SERIES_ID,
@@ -194,7 +195,7 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
   });
 
   return {
-    backgroundColor: theme.background,
+    backgroundColor: toZrColor(theme.background),
     series: [
       buildSeries(FLOW_GRID_SERIES_ID, FLOW_GRID_SERIES_TYPE, GRID_SERIES_Z, gridPayload, [{ id: 'grid', value: [0] }]),
       buildSeries(FLOW_LANE_SERIES_ID, FLOW_LANE_SERIES_TYPE, LANE_SERIES_Z, lanePayload, laneItems.map((id) => ({ id, value: [0] }))),

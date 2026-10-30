@@ -1,8 +1,9 @@
 import type { CustomSeriesRenderItemParams, CustomSeriesRenderItemReturn } from 'echarts';
-import type { PortSide, ResolvedNode } from '../types';
+import type { FlowColor, FlowNodeShape, PortSide, ResolvedNode } from '../types';
 import { getPortOffset, getShapeDecorations, getShapePath, getShapePolygon, getShapeRadius, PORT_SIDES } from '../geometry/nodeShape';
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowHitInfo, FlowNodePayload } from './flowPayload';
+import { isTransparent, toZrColor } from './flowColor';
 import { alignToPixel } from './pixelAlign';
 
 export type ElementOption = NonNullable<CustomSeriesRenderItemReturn>;
@@ -13,6 +14,12 @@ const MIN_STATUS_DOT_RADIUS = 2.5;
 /** Fraction of the way from the center to the diamond's top-right edge midpoint. */
 const DECISION_DOT_EDGE_RATIO = 0.75;
 const PORT_LINE_WIDTH = 1.5;
+/** Screen-pixel gap between a node and its selection ring. */
+const RING_GAP = 4;
+const RING_LINE_WIDTH = 2;
+const RING_OPACITY = 0.6;
+/** Shapes with a straight left edge, where an accent bar fits. */
+const ACCENT_SHAPES = new Set<FlowNodeShape>(['process', 'subprocess']);
 
 interface NodeView {
   node: ResolvedNode;
@@ -25,12 +32,17 @@ interface NodeView {
   isHovered: boolean;
 }
 
-function calcStrokeColor(view: NodeView): string {
+/** Ring styles mark selection with a halo, so the border keeps its own color. */
+function isRingSelection(view: NodeView): boolean {
+  return view.theme.node.selectionStyle === 'ring';
+}
+
+function calcStrokeColor(view: NodeView): FlowColor {
   const { node, theme } = view;
-  if (view.isSelected) {
+  if (view.isSelected && !isRingSelection(view)) {
     return theme.selected;
   }
-  if (view.isHovered) {
+  if (view.isHovered && !isRingSelection(view)) {
     return theme.hover;
   }
   if (node.status && theme.statusIndicator === 'stroke') {
@@ -39,26 +51,31 @@ function calcStrokeColor(view: NodeView): string {
   return node.appearance.stroke;
 }
 
-/** Selection and running state glow in their own color; otherwise the node's drop shadow. */
+/**
+ * Running nodes, and selected nodes in stroke style, glow in their own color.
+ * Otherwise the node casts its drop shadow, which grows on hover so the card
+ * seems to lift.
+ */
 function calcShadow(view: NodeView) {
-  const { node, theme } = view;
-  if (view.isSelected) {
+  const { node, theme, scale } = view;
+  if (view.isSelected && !isRingSelection(view)) {
     return { shadowColor: theme.selected, shadowBlur: theme.node.glowBlur, shadowOffsetY: 0 };
   }
   if (node.status === 'running') {
     return { shadowColor: theme.status.running, shadowBlur: theme.node.glowBlur, shadowOffsetY: 0 };
   }
+  const lift = view.isHovered || view.isSelected ? theme.node.hoverLift : 1;
   const { shadowColor, shadowBlur, shadowOffsetY } = node.appearance;
-  return { shadowColor, shadowBlur, shadowOffsetY: shadowOffsetY * view.scale };
+  return { shadowColor, shadowBlur: shadowBlur * lift, shadowOffsetY: shadowOffsetY * lift * scale };
 }
 
 function buildShapeStyle(view: NodeView) {
   const { appearance } = view.node;
-  const isActive = view.isSelected || view.isHovered;
-  const hasOutline = appearance.stroke !== 'transparent' || isActive;
+  const isActive = (view.isSelected || view.isHovered) && !isRingSelection(view);
+  const hasOutline = !isTransparent(appearance.stroke) || isActive;
   return {
-    fill: appearance.fill,
-    stroke: hasOutline ? calcStrokeColor(view) : 'transparent',
+    fill: toZrColor(appearance.fill),
+    stroke: hasOutline ? toZrColor(calcStrokeColor(view)) : 'transparent',
     lineWidth: isActive ? appearance.activeLineWidth : appearance.lineWidth,
     lineDash: appearance.lineDash ?? undefined,
     opacity: appearance.opacity,
@@ -98,6 +115,59 @@ function buildShapeElement(view: NodeView): ElementOption {
   };
 }
 
+/** Halo drawn a few pixels outside the outline of a selected node in ring style. */
+function buildSelectionRing(view: NodeView): ElementOption | null {
+  if (!view.isSelected || !isRingSelection(view)) {
+    return null;
+  }
+  const { node, width, height, theme } = view;
+  const style = { fill: 'none', stroke: theme.selected, lineWidth: RING_LINE_WIDTH, opacity: RING_OPACITY };
+  const base = { name: 'selection-ring', silent: true, style };
+  const ringWidth = width + RING_GAP * 2;
+  const ringHeight = height + RING_GAP * 2;
+  const polygon = getShapePolygon(node.shape, ringWidth, ringHeight);
+  if (polygon) {
+    return { ...base, type: 'polygon', shape: { points: polygon } };
+  }
+  if (node.shape === 'circle') {
+    return { ...base, type: 'ellipse', shape: { cx: 0, cy: 0, rx: ringWidth / 2, ry: ringHeight / 2 } };
+  }
+  const pathData = getShapePath(node.shape, ringWidth, ringHeight);
+  if (pathData) {
+    return { ...base, type: 'path', shape: { pathData } };
+  }
+  const radius = getShapeRadius(node.shape, height, node.appearance.radius * view.scale);
+  return {
+    ...base,
+    type: 'rect',
+    shape: { x: -ringWidth / 2, y: -ringHeight / 2, width: ringWidth, height: ringHeight, r: radius + RING_GAP },
+  };
+}
+
+/**
+ * Colored strip along the left edge of box shapes. It is the card outline
+ * filled with the accent and clipped to a narrow band, so it follows the
+ * rounded corners exactly instead of poking out of them.
+ */
+function buildAccentBar(view: NodeView): ElementOption | null {
+  const { node, width, height, theme, scale } = view;
+  const { accent } = node.appearance;
+  if (!accent || !ACCENT_SHAPES.has(node.shape)) {
+    return null;
+  }
+  const radius = getShapeRadius(node.shape, height, node.appearance.radius * scale);
+  const left = -width / 2;
+  const top = -height / 2;
+  return {
+    type: 'rect',
+    name: 'accent',
+    silent: true,
+    shape: { x: left, y: top, width, height, r: radius },
+    style: { fill: toZrColor(accent), opacity: node.appearance.opacity },
+    clipPath: { type: 'rect', shape: { x: left, y: top, width: Math.max(theme.node.accentWidth * scale, 1), height } },
+  };
+}
+
 function buildDecorations(view: NodeView): ElementOption[] {
   const { appearance } = view.node;
   return getShapeDecorations(view.node.shape, view.width, view.height).map((pathData, index) => ({
@@ -105,7 +175,7 @@ function buildDecorations(view: NodeView): ElementOption[] {
     name: `decoration-${index}`,
     silent: true,
     shape: { pathData },
-    style: { fill: 'none', stroke: calcStrokeColor(view), lineWidth: appearance.lineWidth, opacity: appearance.opacity },
+    style: { fill: 'none', stroke: toZrColor(calcStrokeColor(view)), lineWidth: appearance.lineWidth, opacity: appearance.opacity },
   }));
 }
 
@@ -197,7 +267,9 @@ export function renderFlowNode(params: CustomSeriesRenderItemParams): CustomSeri
   };
   const shouldShowPorts = payload.isEditable && view.isHovered;
   const children = [
+    buildSelectionRing(view),
     buildShapeElement(view),
+    buildAccentBar(view),
     ...buildDecorations(view),
     buildLabel(view),
     buildStatusDot(view),

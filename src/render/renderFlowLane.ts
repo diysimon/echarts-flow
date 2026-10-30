@@ -4,6 +4,7 @@ import type { LaneBox, Rect, TitleBox } from '../layout/laneLayout';
 import { isWideText } from '../geometry/textLayout';
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowHitInfo, FlowLanePayload } from './flowPayload';
+import { toZrColor } from './flowColor';
 import { alignToPixel } from './pixelAlign';
 import type { ElementOption } from './renderFlowNode';
 
@@ -38,14 +39,14 @@ function buildLane(lane: LaneBox, viewport: Viewport, theme: FlowTheme): Element
         // Silent so presses on empty lane space pan the canvas.
         silent: true,
         shape: body,
-        style: { fill: lane.style.fill, stroke: lane.style.borderColor, lineWidth: borderWidth },
+        style: { fill: toZrColor(lane.style.fill), stroke: lane.style.borderColor, lineWidth: borderWidth },
       },
       {
         type: 'rect',
         name: 'header',
         info,
         shape: header,
-        style: { fill: lane.style.headerFill, stroke: lane.style.borderColor, lineWidth: borderWidth },
+        style: { fill: toZrColor(lane.style.headerFill), stroke: lane.style.borderColor, lineWidth: borderWidth },
       },
       {
         type: 'text',

@@ -1,5 +1,7 @@
 import type { CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams, CustomSeriesRenderItemReturn } from 'echarts';
+import type { FlowBackdropBlob } from '../theme/flowTheme';
 import type { FlowGridPayload } from './flowPayload';
+import type { ElementOption } from './renderFlowNode';
 
 /** Skip the grid when zoomed out so far that cells would be denser than this. */
 const MIN_CELL_PIXELS = 6;
@@ -37,16 +39,49 @@ export function buildGridPath(type: 'dot' | 'line', step: number, offsetX: numbe
   return commands.join(' ');
 }
 
-export function renderFlowGrid(params: CustomSeriesRenderItemParams, api: CustomSeriesRenderItemAPI): CustomSeriesRenderItemReturn {
-  const { viewport, theme } = params.itemPayload as unknown as FlowGridPayload;
+/** Large soft radial glows behind the grid, fixed to the screen for an ambient backdrop. */
+function buildBackdrop(blobs: FlowBackdropBlob[], width: number, height: number): ElementOption[] {
+  const size = Math.max(width, height);
+  return blobs.map((blob, index) => ({
+    type: 'circle',
+    name: `backdrop-${index}`,
+    silent: true,
+    shape: { cx: blob.x * width, cy: blob.y * height, r: blob.radius * size },
+    style: {
+      fill: {
+        type: 'radial',
+        x: 0.5,
+        y: 0.5,
+        r: 0.5,
+        colorStops: [{ offset: 0, color: blob.color }, { offset: 1, color: 'rgba(0,0,0,0)' }],
+        global: false,
+      },
+    },
+  }));
+}
+
+function buildGrid(payload: FlowGridPayload, width: number, height: number): ElementOption | null {
+  const { viewport, theme } = payload;
   const { grid } = theme;
   const step = grid.size * viewport.scale;
   if (grid.type === 'none' || step < MIN_CELL_PIXELS) {
     return null;
   }
-  const pathData = buildGridPath(grid.type, step, viewport.x, viewport.y, api.getWidth(), api.getHeight());
+  const pathData = buildGridPath(grid.type, step, viewport.x, viewport.y, width, height);
   const style = grid.type === 'line'
     ? { fill: 'none', stroke: grid.color, lineWidth: 1 }
     : { fill: grid.color, stroke: 'none' };
-  return { type: 'path', silent: true, shape: { pathData }, style };
+  return { type: 'path', name: 'grid', silent: true, shape: { pathData }, style };
+}
+
+export function renderFlowGrid(params: CustomSeriesRenderItemParams, api: CustomSeriesRenderItemAPI): CustomSeriesRenderItemReturn {
+  const payload = params.itemPayload as unknown as FlowGridPayload;
+  const width = api.getWidth();
+  const height = api.getHeight();
+  const children = [...buildBackdrop(payload.theme.backdrop.blobs, width, height), buildGrid(payload, width, height)]
+    .filter((child): child is ElementOption => child !== null);
+  if (children.length === 0) {
+    return null;
+  }
+  return { type: 'group', silent: true, children };
 }

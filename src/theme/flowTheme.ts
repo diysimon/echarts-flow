@@ -1,14 +1,28 @@
-import type { ArrowType, EdgeRouting, FlowNodeShape, FlowStatus, FontWeight, TextOverflow } from '../types';
+import type { ArrowType, EdgeRouting, FlowColor, FlowNodeShape, FlowStatus, FontWeight, TextOverflow } from '../types';
 
 export interface FlowShapeStyle {
-  fill: string;
-  stroke: string;
+  fill: FlowColor;
+  stroke: FlowColor;
   text: string;
+  /** Accent bar along the left edge of box shapes; omit for none. */
+  accent?: FlowColor;
+}
+
+/** A soft glow fixed to the screen behind the canvas, positioned relative to the chart size. */
+export interface FlowBackdropBlob {
+  /** Center, 0 to 1 across the chart width and height. */
+  x: number;
+  y: number;
+  /** Radius relative to the larger chart side. */
+  radius: number;
+  color: string;
 }
 
 export interface FlowTheme {
   /** Canvas background; 'transparent' lets the host page show through. */
-  background: string;
+  background: FlowColor;
+  /** Glows painted between the background and the grid; they stay put while the canvas pans. */
+  backdrop: { blobs: FlowBackdropBlob[] };
   fontFamily: string;
   /** Background grid that pans and zooms with the canvas. */
   grid: { type: 'dot' | 'line' | 'none'; size: number; color: string };
@@ -35,6 +49,12 @@ export interface FlowTheme {
     maxWidth: number;
     /** Blur of the selection and running glow. */
     glowBlur: number;
+    /** Width of the accent bar on box shapes whose style has an accent. */
+    accentWidth: number;
+    /** 'stroke' recolors the border when selected; 'ring' draws a halo outside it instead. */
+    selectionStyle: 'stroke' | 'ring';
+    /** Shadow growth on hover, so cards appear to lift; 1 means no lift. */
+    hoverLift: number;
   };
   edge: {
     stroke: string;
@@ -51,13 +71,15 @@ export interface FlowTheme {
     labelBorder: string;
     labelFontSize: number;
     labelRadius: number;
+    /** Soft shadow under edge labels; 'transparent' for none. */
+    labelShadowColor: string;
     opacity: number;
   };
   lane: {
-    fill: string;
+    fill: FlowColor;
     /** Every other lane uses this, for zebra striping. */
-    alternateFill: string;
-    headerFill: string;
+    alternateFill: FlowColor;
+    headerFill: FlowColor;
     headerTextColor: string;
     headerFontSize: number;
     headerFontWeight: FontWeight;
@@ -79,7 +101,7 @@ export interface FlowTheme {
   statusDot: { radius: number; isVisible: boolean };
 }
 
-export type FlowThemeName = 'light' | 'dark' | 'macarons' | 'tech-blue' | 'whiteboard' | 'classic';
+export type FlowThemeName = 'light' | 'dark' | 'macarons' | 'tech-blue' | 'whiteboard' | 'classic' | 'aurora' | 'aurora-dark';
 
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends unknown[] | null ? T[K] : T[K] extends object ? DeepPartial<T[K]> : T[K];

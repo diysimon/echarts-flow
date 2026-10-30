@@ -4,6 +4,7 @@ import type { FlowNodePayload } from './flowPayload';
 import { resolveNode } from '../geometry/nodeShape';
 import { darkTheme } from '../theme/darkThemes';
 import { lightTheme } from '../theme/lightThemes';
+import { auroraTheme } from '../theme/modernThemes';
 import type { FlowNode } from '../types';
 
 interface ElementLike {
@@ -15,6 +16,7 @@ interface ElementLike {
   info?: unknown;
   shape?: Record<string, unknown>;
   style?: Record<string, unknown>;
+  clipPath?: { shape?: Record<string, unknown> };
   children?: ElementLike[];
 }
 
@@ -175,5 +177,61 @@ describe('renderFlowNode', () => {
 
     // Assert
     expect(result).toBeNull();
+  });
+
+  describe('modern theme', () => {
+    it('should draw a selection ring when theme uses ring selection', () => {
+      // Act
+      const root = render(createParams([PROCESS_NODE], { theme: auroraTheme, selectedIds: ['p'] }));
+
+      // Assert
+      expect(findChild(root, 'selection-ring')?.style?.stroke).toBe(auroraTheme.selected);
+    });
+
+    it('should keep the node border color when theme uses ring selection', () => {
+      // Act
+      const root = render(createParams([PROCESS_NODE], { theme: auroraTheme, selectedIds: ['p'] }));
+
+      // Assert
+      expect(findChild(root, 'shape')?.style?.stroke).toBe(auroraTheme.shapes.process.stroke);
+    });
+
+    it('should not draw a selection ring when theme uses stroke selection', () => {
+      // Act
+      const root = render(createParams([PROCESS_NODE], { selectedIds: ['p'] }));
+
+      // Assert
+      expect(findChild(root, 'selection-ring')).toBeUndefined();
+    });
+
+    it('should clip the accent bar to the accent width when shape is process', () => {
+      // Act
+      const root = render(createParams([PROCESS_NODE], { theme: auroraTheme }));
+
+      // Assert
+      expect(findChild(root, 'accent')?.clipPath?.shape?.width).toBe(auroraTheme.node.accentWidth);
+    });
+
+    it('should not draw an accent bar when shape is decision', () => {
+      // Arrange
+      const node: FlowNode = { ...PROCESS_NODE, shape: 'decision' };
+
+      // Act
+      const root = render(createParams([node], { theme: auroraTheme }));
+
+      // Assert
+      expect(findChild(root, 'accent')).toBeUndefined();
+    });
+
+    it('should enlarge the shadow when node is hovered', () => {
+      // Arrange
+      const restBlur = findChild(render(createParams([PROCESS_NODE], { theme: auroraTheme })), 'shape')?.style?.shadowBlur as number;
+
+      // Act
+      const root = render(createParams([PROCESS_NODE], { theme: auroraTheme, hoveredId: 'p' }));
+
+      // Assert
+      expect(findChild(root, 'shape')?.style?.shadowBlur).toBe(restBlur * auroraTheme.node.hoverLift);
+    });
   });
 });

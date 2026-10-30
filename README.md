@@ -8,7 +8,7 @@ Flowchart and swimlane extension for [Apache ECharts 6](https://echarts.apache.o
 - Swimlanes: horizontal (rows) or vertical (columns), title bar, per-lane colors, drag a node into another lane
 - Auto layout (dagre), with an optional compact lane mode
 - Obstacle-avoiding orthogonal routing: edges go around nodes, parallel edges stay apart, ports are spread; straight and curved edges are also available
-- 6 built-in themes, deep overrides with `createFlowTheme`, and per-node, per-edge and per-lane styles
+- 8 built-in themes, deep overrides with `createFlowTheme`, gradient colors, and per-node, per-edge and per-lane styles
 - Editor: drag, connect, double-click to rename, multi-select, delete, undo/redo, pan and zoom; every capability is configurable
 - Run status: pending / running / done / error, with a flowing dash on edges into running nodes
 - Works with the Canvas and SVG renderers; text is drawn on whole pixels and stays sharp when zoomed
@@ -111,7 +111,18 @@ new FlowEditor(chart, { graph, direction: 'LR', theme: 'whiteboard', layout: { i
 
 ## Themes and styles
 
-Built-in themes: `light`, `dark`, `macarons`, `tech-blue`, `whiteboard`, `classic`.
+Built-in themes: `light`, `dark`, `macarons`, `tech-blue`, `whiteboard`, `classic`, plus the modern `aurora` and `aurora-dark` (gradient background with soft glows, white or glass cards with a gradient accent bar, ring selection, cards that lift on hover). See `test/cases/15-aurora.html`.
+
+Any `fill`, `stroke`, `accent`, lane fill or theme `background` accepts a gradient as well as a color string:
+
+```ts
+import { linearGradient } from 'echarts-flow';
+
+const node = { id: 'a', label: 'Deploy', style: { fill: linearGradient(135, '#6366f1', '#a855f7'), textColor: '#fff' } };
+// Radial: { type: 'radial', stops: [{ offset: 0, color: '#fff' }, { offset: 1, color: '#eef2ff' }] }
+```
+
+Modern-look theme options: `backdrop.blobs` (screen-fixed radial glows), `node.accentWidth`, `node.selectionStyle` (`'stroke'` or `'ring'`), `node.hoverLift` (shadow multiplier on hover), `edge.labelShadowColor`.
 
 ```ts
 import { createFlowTheme, lightTheme } from 'echarts-flow';
@@ -178,7 +189,7 @@ npm test
 npm run check    # typecheck + tests + build
 ```
 
-`test/cases/` holds 14 pages covering read-only charts, shapes and status, layout direction, editing, run monitoring, JSON import/export, large graphs, multiple instances, themes, swimlanes, style options and edit options.
+`test/cases/` holds 15 pages covering read-only charts, shapes and status, layout direction, editing, run monitoring, JSON import/export, large graphs, multiple instances, themes, swimlanes, style options, edit options and the aurora showcase.
 
 ## License
 

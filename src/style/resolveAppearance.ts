@@ -15,6 +15,7 @@ export function resolveNodeAppearance(node: FlowNode, theme: FlowTheme, laneNode
   const base: NodeAppearance = {
     fill: shapeStyle.fill,
     stroke: shapeStyle.stroke,
+    accent: shapeStyle.accent ?? null,
     textColor: shapeStyle.text,
     lineWidth: theme.node.lineWidth,
     activeLineWidth: theme.node.activeLineWidth,
@@ -36,6 +37,6 @@ export function resolveNodeAppearance(node: FlowNode, theme: FlowTheme, laneNode
 }
 
 export function resolveEdgeAppearance(edge: FlowEdge, theme: FlowTheme): EdgeAppearance {
-  const { labelRadius: _labelRadius, ...themeEdge } = theme.edge;
+  const { labelRadius: _labelRadius, labelShadowColor: _labelShadowColor, ...themeEdge } = theme.edge;
   return { ...themeEdge, ...pickDefined(edge.style) };
 }

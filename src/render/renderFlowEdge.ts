@@ -14,6 +14,8 @@ const RUNNING_DASH = [6, 4];
 const DASH_CYCLE = RUNNING_DASH[0] + RUNNING_DASH[1];
 const FLOW_ANIMATION_DURATION = 600;
 const LABEL_PADDING = [2, 6];
+const LABEL_SHADOW_BLUR = 8;
+const LABEL_SHADOW_OFFSET_Y = 2;
 /** Keeps arrows visible when zoomed far out. */
 const MIN_ARROW_SIZE = 5;
 
@@ -98,6 +100,10 @@ function buildLabel(view: EdgeView, info: FlowHitInfo): ElementOption | null {
       borderWidth: 1,
       borderRadius: theme.edge.labelRadius * scale,
       padding: LABEL_PADDING.map((value) => Math.round(value * scale)),
+      // On text with a background box, the plain shadow props shadow the box, not the glyphs.
+      shadowColor: theme.edge.labelShadowColor,
+      shadowBlur: LABEL_SHADOW_BLUR * scale,
+      shadowOffsetY: LABEL_SHADOW_OFFSET_Y * scale,
       opacity: appearance.opacity,
     },
   };

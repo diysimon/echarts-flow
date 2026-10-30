@@ -6,7 +6,9 @@ export type {
   EdgeRouting,
   FlowDirection,
   FlowEdge,
+  FlowColor,
   FlowEdgeStyle,
+  FlowGradient,
   FlowGraph,
   FlowLane,
   FlowLaneStyle,
@@ -37,9 +39,11 @@ export type { LaneBox, LaneLayout, TitleBox } from './layout/laneLayout';
 export { FLOW_EDGE_SERIES_TYPE, FLOW_GRID_SERIES_TYPE, FLOW_LANE_SERIES_TYPE, FLOW_NODE_SERIES_TYPE } from './render/flowPayload';
 export type { FlowHitInfo } from './render/flowPayload';
 export { createFlowTheme } from './theme/flowTheme';
-export type { DeepPartial, FlowShapeStyle, FlowTheme, FlowThemeName } from './theme/flowTheme';
+export type { DeepPartial, FlowBackdropBlob, FlowShapeStyle, FlowTheme, FlowThemeName } from './theme/flowTheme';
 export { classicTheme, lightTheme, macaronsTheme, whiteboardTheme } from './theme/lightThemes';
 export { darkTheme, techBlueTheme } from './theme/darkThemes';
+export { auroraDarkTheme, auroraTheme } from './theme/modernThemes';
+export { linearGradient } from './render/flowColor';
 export { FLOW_THEMES, resolveFlowTheme } from './theme/themeRegistry';
 export { FlowEditor } from './editor/FlowEditor';
 export type { AddNodeInput, FlowEditorOptions, FlowEditorChart } from './editor/FlowEditor';

@@ -39,10 +39,23 @@ export interface Point {
   y: number;
 }
 
+/** Gradient fill relative to the element it paints. */
+export interface FlowGradient {
+  type: 'linear' | 'radial';
+  /** Linear only: direction in degrees; 0 runs left to right, 90 top to bottom. */
+  angle?: number;
+  stops: { offset: number; color: string }[];
+}
+
+/** A CSS color string or a gradient. */
+export type FlowColor = string | FlowGradient;
+
 /** Per-node overrides; unset fields fall back to the lane, then the theme. */
 export interface FlowNodeStyle {
-  fill?: string;
-  stroke?: string;
+  fill?: FlowColor;
+  stroke?: FlowColor;
+  /** Color of the accent bar on box shapes, when the theme draws one. */
+  accent?: FlowColor | null;
   lineWidth?: number;
   lineDash?: number[] | null;
   textColor?: string;
@@ -73,8 +86,8 @@ export interface FlowEdgeStyle {
 }
 
 export interface FlowLaneStyle {
-  fill?: string;
-  headerFill?: string;
+  fill?: FlowColor;
+  headerFill?: FlowColor;
   headerTextColor?: string;
   borderColor?: string;
 }
@@ -127,8 +140,9 @@ export interface FlowGraph {
 
 /** Fully resolved node appearance, after theme, lane and node styles are merged. */
 export interface NodeAppearance {
-  fill: string;
-  stroke: string;
+  fill: FlowColor;
+  stroke: FlowColor;
+  accent: FlowColor | null;
   lineWidth: number;
   activeLineWidth: number;
   lineDash: number[] | null;

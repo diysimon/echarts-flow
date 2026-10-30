@@ -23,6 +23,7 @@ export function buildShapes(
 /** Shared defaults; each built-in theme overrides colors and a few metrics. */
 export const BASE_THEME: Omit<FlowTheme, 'shapes'> = {
   background: 'transparent',
+  backdrop: { blobs: [] },
   fontFamily: FONT_FAMILY,
   grid: { type: 'none', size: 20, color: '#e4e6eb' },
   text: { fontSize: 13, fontWeight: 'normal', lineHeight: 18, overflow: 'wrap', paddingX: 12, paddingY: 8 },
@@ -36,6 +37,9 @@ export const BASE_THEME: Omit<FlowTheme, 'shapes'> = {
     shadowOffsetY: 2,
     maxWidth: 200,
     glowBlur: 12,
+    accentWidth: 4,
+    selectionStyle: 'stroke',
+    hoverLift: 1,
   },
   edge: {
     stroke: '#9ea0a5',
@@ -52,6 +56,7 @@ export const BASE_THEME: Omit<FlowTheme, 'shapes'> = {
     labelBorder: '#e8ebf0',
     labelFontSize: 12,
     labelRadius: 4,
+    labelShadowColor: 'transparent',
     opacity: 1,
   },
   lane: {

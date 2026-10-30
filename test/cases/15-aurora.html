@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>15 Aurora 现代主题 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">15 Aurora 现代主题</h1>
+    <p class="case__desc">
+      <code>aurora</code> 与 <code>aurora-dark</code>：白色（或磨砂玻璃）卡片、左侧渐变强调条、悬停时阴影抬升、
+      选中时外圈光环、渐变色的开始/结束/判断节点、药丸形连线标签，背景是渐变底色加柔和的极光光晕和点阵网格。
+      渐变通过 <code>linearGradient()</code> 定义，节点、泳道和画布背景都可以使用。悬停或点选节点查看交互效果。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" id="run-button" type="button">模拟运行</button>
+      <button class="case__button" id="fit-button" type="button">适应画布</button>
+    </div>
+    <section class="case__chart case__chart--showcase" id="chart-light"></section>
+    <section class="case__chart case__chart--showcase" id="chart-dark"></section>
+    <script type="module" src="./aurora.ts"></script>
+  </body>
+</html>

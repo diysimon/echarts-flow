@@ -8,7 +8,7 @@
 - 泳道：横向（行）或竖向（列）、标题、按泳道配色、拖动节点换泳道
 - 自动布局（dagre），可选紧凑泳道
 - 避障正交路由：绕开节点、平行线错开、端口分散；也支持直线和曲线
-- 6 套内置主题，可用 `createFlowTheme` 深度覆盖；节点、连线、泳道可单独设置样式
+- 8 套内置主题，可用 `createFlowTheme` 深度覆盖，支持渐变色；节点、连线、泳道可单独设置样式
 - 编辑器：拖动、连线、双击改文字、多选、删除、撤销重做、平移缩放；每项能力都可配置
 - 运行状态展示：pending / running / done / error，运行中的连线有流动动画
 - Canvas 与 SVG 渲染都可用，文字按整像素绘制，缩放后依然清晰
@@ -111,7 +111,18 @@ new FlowEditor(chart, { graph, direction: 'LR', theme: 'whiteboard', layout: { i
 
 ## 主题与样式
 
-内置主题：`light`、`dark`、`macarons`、`tech-blue`、`whiteboard`、`classic`。
+内置主题：`light`、`dark`、`macarons`、`tech-blue`、`whiteboard`、`classic`，以及现代风格的 `aurora` 和 `aurora-dark`（渐变背景加柔和光晕、白色或毛玻璃卡片配渐变强调条、环形选中框、悬停时卡片浮起）。效果见 `test/cases/15-aurora.html`。
+
+所有 `fill`、`stroke`、`accent`、泳道填充和主题 `background` 除了颜色字符串，也可以传渐变：
+
+```ts
+import { linearGradient } from 'echarts-flow';
+
+const node = { id: 'a', label: '部署', style: { fill: linearGradient(135, '#6366f1', '#a855f7'), textColor: '#fff' } };
+// 径向渐变：{ type: 'radial', stops: [{ offset: 0, color: '#fff' }, { offset: 1, color: '#eef2ff' }] }
+```
+
+现代风格相关的主题配置：`backdrop.blobs`（固定在屏幕上的径向光晕）、`node.accentWidth`、`node.selectionStyle`（`'stroke'` 或 `'ring'`）、`node.hoverLift`（悬停时阴影放大倍数）、`edge.labelShadowColor`。
 
 ```ts
 import { createFlowTheme, lightTheme } from 'echarts-flow';
@@ -178,7 +189,7 @@ npm test
 npm run check    # 类型检查 + 测试 + 构建
 ```
 
-`test/cases/` 下有 14 个用例页面，覆盖只读展示、形状与状态、布局方向、编辑、运行监控、JSON 导入导出、大图性能、多实例、主题、泳道、样式配置和编辑配置。
+`test/cases/` 下有 15 个用例页面，覆盖只读展示、形状与状态、布局方向、编辑、运行监控、JSON 导入导出、大图性能、多实例、主题、泳道、样式配置、编辑配置和 aurora 主题展示。
 
 ## License
 
