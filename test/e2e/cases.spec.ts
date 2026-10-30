@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 
 const CASE_PAGES = [
@@ -20,8 +21,11 @@ const CASE_PAGES = [
   '17-text-clarity',
 ];
 const RENDERERS = ['canvas', 'svg'] as const;
-/** Light theme has no grid, so an empty editor paints nothing and creates no canvas. */
-const BLANK_PAGE = '04-blank-editor';
+/**
+ * Pages without a chart: the light theme has no grid, so an empty editor paints
+ * nothing, and the text clarity page draws its samples without ECharts.
+ */
+const PAGES_WITHOUT_CHART = new Set(['04-blank-editor', '17-text-clarity']);
 /** Fixed start time and settle time for the fake clock, so animations end in the same frame every run. */
 const CLOCK_START = new Date('2026-01-01T00:00:00Z');
 const SETTLE_TIME = 3000;
@@ -52,7 +56,7 @@ for (const name of CASE_PAGES) {
     });
 
     test(`${name} draws a chart in ${renderer}`, async ({ page }) => {
-      test.skip(name === BLANK_PAGE, 'The blank editor starts with nothing to draw');
+      test.skip(PAGES_WITHOUT_CHART.has(name), 'This page has no chart to draw');
 
       // Act
       await openCase(page, name, renderer);
@@ -65,12 +69,22 @@ for (const name of CASE_PAGES) {
   /**
    * Baselines carry the platform in their file name because font rendering
    * differs between systems. Run `npm run test:e2e:update` to record them.
+   * A missing baseline is recorded and the test passes with a note; Playwright's
+   * own `--update-snapshots=missing` writes it too but still fails the test.
    */
-  test(`${name} looks the same as the baseline`, async ({ page }) => {
+  test(`${name} looks the same as the baseline`, async ({ page }, testInfo) => {
     // Act
     await openCase(page, name, 'canvas');
 
     // Assert
-    await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: true });
+    const fileName = `${name}.png`;
+    const baselinePath = testInfo.snapshotPath(fileName, { kind: 'screenshot' });
+    if (!existsSync(baselinePath)) {
+      // Same capture settings as toHaveScreenshot, so the recorded file compares cleanly later.
+      await page.screenshot({ path: baselinePath, fullPage: true, animations: 'disabled', caret: 'hide', scale: 'css' });
+      testInfo.annotations.push({ type: 'baseline', description: `Recorded ${baselinePath}; commit it to start comparing` });
+      return;
+    }
+    await expect(page).toHaveScreenshot(fileName, { fullPage: true });
   });
 }

@@ -31,7 +31,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # Baselines that are not committed yet are recorded instead of compared;
       # download the snapshots artifact and commit it to start comparing.
-      - run: npx playwright test --update-snapshots=missing
+      - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
