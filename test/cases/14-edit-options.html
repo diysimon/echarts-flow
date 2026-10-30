@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>14 编辑配置项与 API - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">14 编辑配置项与 API</h1>
+    <p class="case__desc">
+      编辑能力由 <code>edit</code> 配置项控制（构造时传入），运行时用 <code>editor.setEditOptions(patch)</code> 修改、
+      <code>editor.getEditOptions()</code> 读取。右侧每个开关都直接调用 <code>setEditOptions</code>。
+      这些开关只限制用户的鼠标和键盘操作，API 调用不受影响；<code>validateConnection</code>、<code>beforeDelete</code>
+      和节点/连线的 <code>isLocked</code> 是数据规则，对用户操作和 API 都生效。
+    </p>
+    <div class="case__toolbar">
+      <span class="case__label">预设</span>
+      <button class="case__button" type="button" data-preset="all">全部可编辑</button>
+      <button class="case__button" type="button" data-preset="readonly">只读（可平移缩放）</button>
+      <button class="case__button" type="button" data-preset="static">完全静态</button>
+      <button class="case__button" type="button" data-preset="connect-only">只能连线</button>
+      <button class="case__button" type="button" data-preset="move-only">只能拖动</button>
+      <span class="case__label">API</span>
+      <button class="case__button" id="lock-button" type="button">锁定/解锁所选</button>
+      <button class="case__button" id="api-connect-button" type="button">API 连线 审批 → 开始</button>
+      <button class="case__button" id="api-delete-button" type="button">API 删除所选</button>
+      <label>缩放 <input id="zoom-range" type="range" min="10" max="400" value="100" /></label>
+    </div>
+    <div class="case__layout">
+      <section class="case__chart" id="chart"></section>
+      <aside class="case__side">
+        <span class="case__label">编辑开关</span>
+        <div class="case__options" id="flag-list"></div>
+        <span class="case__label">数值</span>
+        <div class="case__options" id="number-list"></div>
+        <span class="case__label">数据规则</span>
+        <label><input id="rule-connection" type="checkbox" checked /> validateConnection：不能连向"开始"，判断最多 2 条出边</label>
+        <label><input id="rule-delete" type="checkbox" checked /> beforeDelete：删除前确认</label>
+        <span class="case__label">日志</span>
+        <pre class="case__log case__log--short" id="log"></pre>
+      </aside>
+    </div>
+    <script type="module" src="./edit-options.ts"></script>
+  </body>
+</html>

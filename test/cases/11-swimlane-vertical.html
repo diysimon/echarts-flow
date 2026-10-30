@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>11 竖向泳道（经典风格）- echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">11 竖向泳道（经典风格）</h1>
+    <p class="case__desc">
+      仿"软件产品设计研发流程图"：<code>direction: 'TB'</code> 时泳道是竖排的列，表头在顶部，图上方有标题栏。
+      数据里没有任何坐标，节点位置和泳道宽度全部由自动布局计算：沿流程方向用 dagre 分层，跨泳道方向把节点放进各自的列。
+      使用 <code>classic</code> 主题（蓝色实心方框、橙色判断、绿色起止、细框表格）。可以切换主题对比。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" id="layout-button" type="button">重新自动布局</button>
+      <button class="case__button" id="fit-button" type="button">适应画布</button>
+      <label>
+        主题
+        <select id="theme-select">
+          <option value="classic">classic</option>
+          <option value="light">light</option>
+          <option value="whiteboard">whiteboard</option>
+          <option value="dark">dark</option>
+          <option value="tech-blue">tech-blue</option>
+          <option value="macarons">macarons</option>
+        </select>
+      </label>
+      <label><input id="curve-toggle" type="checkbox" /> 曲线连线</label>
+      <label><input id="compact-toggle" type="checkbox" checked /> 紧凑泳道（每列从顶部开始）</label>
+    </div>
+    <section class="case__chart case__chart--tall" id="chart"></section>
+    <script type="module" src="./swimlane-vertical.ts"></script>
+  </body>
+</html>

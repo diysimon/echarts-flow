@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>echarts-flow 流程图编辑器</title>
+    <link rel="stylesheet" href="/demo/demo.css" />
+  </head>
+  <body>
+    <header class="flow-demo__toolbar">
+      <div class="flow-demo__group" aria-label="添加节点">
+        <button class="flow-demo__button" type="button" data-shape="start">开始</button>
+        <button class="flow-demo__button" type="button" data-shape="process">处理</button>
+        <button class="flow-demo__button" type="button" data-shape="decision">判断</button>
+        <button class="flow-demo__button" type="button" data-shape="io">输入/输出</button>
+        <button class="flow-demo__button" type="button" data-shape="end">结束</button>
+      </div>
+      <div class="flow-demo__group" aria-label="编辑">
+        <button class="flow-demo__button" id="undo-button" type="button" data-action="undo">撤销</button>
+        <button class="flow-demo__button" id="redo-button" type="button" data-action="redo">重做</button>
+        <button class="flow-demo__button" type="button" data-action="delete">删除</button>
+      </div>
+      <div class="flow-demo__group" aria-label="视图">
+        <button class="flow-demo__button" type="button" data-action="layout">自动布局</button>
+        <button class="flow-demo__button" type="button" data-action="fit">适应画布</button>
+        <button class="flow-demo__button" type="button" data-action="zoom-in">放大</button>
+        <button class="flow-demo__button" type="button" data-action="zoom-out">缩小</button>
+      </div>
+      <div class="flow-demo__group" aria-label="模式">
+        <button class="flow-demo__button" type="button" data-action="simulate">模拟运行</button>
+        <label class="flow-demo__toggle"><input id="editable-toggle" type="checkbox" checked /> 可编辑</label>
+        <label class="flow-demo__toggle">
+          主题
+          <select id="theme-select">
+            <option value="light">light</option>
+            <option value="dark">dark</option>
+            <option value="macarons">macarons</option>
+            <option value="tech-blue">tech-blue</option>
+          </select>
+        </label>
+      </div>
+    </header>
+    <main class="flow-demo__body">
+      <section class="flow-demo__canvas" id="flow-chart"></section>
+      <aside class="flow-demo__panel">
+        <h2 class="flow-demo__title">操作说明</h2>
+        <ul class="flow-demo__tips">
+          <li>拖动节点移动，Shift 点击多选</li>
+          <li>悬停节点后从圆点拖出连线</li>
+          <li>双击节点或连线编辑文字</li>
+          <li>Delete 删除，Ctrl/Cmd+Z 撤销</li>
+          <li>拖动空白处平移，滚轮缩放</li>
+        </ul>
+        <h2 class="flow-demo__title">数据</h2>
+        <pre class="flow-demo__json" id="graph-json"></pre>
+      </aside>
+    </main>
+    <script type="module" src="/demo/main.ts"></script>
+  </body>
+</html>

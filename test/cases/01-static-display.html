@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>01 只读展示 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">01 只读展示：buildFlowOption + 点击事件</h1>
+    <p class="case__desc">
+      不使用编辑器，直接把 <code>buildFlowOption(graph)</code> 交给 <code>chart.setOption</code>。
+      数据里没有坐标，由 dagre 自动布局；用 <code>calcFitViewport</code> 让图居中。
+      点击节点或连线，右侧通过 <code>params.info</code> 显示命中信息。
+    </p>
+    <div class="case__layout">
+      <section class="case__chart" id="chart"></section>
+      <aside class="case__side">
+        <span class="case__label">事件日志</span>
+        <pre class="case__log" id="log"></pre>
+      </aside>
+    </div>
+    <script type="module" src="./static-display.ts"></script>
+  </body>
+</html>

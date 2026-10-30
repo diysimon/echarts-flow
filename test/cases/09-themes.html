@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>09 主题 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">09 主题</h1>
+    <p class="case__desc">
+      同一份数据分别使用 4 套内置主题：<code>light</code>（ECharts 6 默认色板）、<code>dark</code>（ECharts 6 暗色）、
+      <code>macarons</code>（马卡龙）、<code>tech-blue</code>（科技蓝）。每张图都包含 5 种形状、4 种状态、
+      一个选中节点和带标签的连线。点"放大"可以对比缩放后的文字清晰度。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" id="zoom-in-button" type="button">全部放大</button>
+      <button class="case__button" id="zoom-out-button" type="button">全部缩小</button>
+      <button class="case__button" id="fit-button" type="button">全部适应画布</button>
+    </div>
+    <div class="case__grid">
+      <section class="case__chart case__chart--short" data-theme="light"></section>
+      <section class="case__chart case__chart--short" data-theme="dark"></section>
+      <section class="case__chart case__chart--short" data-theme="macarons"></section>
+      <section class="case__chart case__chart--short" data-theme="tech-blue"></section>
+    </div>
+    <script type="module" src="./themes.ts"></script>
+  </body>
+</html>

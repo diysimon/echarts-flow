@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>03 布局方向与回边 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">03 布局方向与回边</h1>
+    <p class="case__desc">
+      同一份带循环的数据（重试回到上游），左边 <code>direction: 'TB'</code>，右边 <code>direction: 'LR'</code>。
+      TB 下回边从右侧绕行，LR 下回边从下方绕行，都要绕开中间的节点。两个编辑器都可以拖动节点观察连线重算。
+    </p>
+    <div class="case__grid">
+      <section class="case__chart" id="chart-tb"></section>
+      <section class="case__chart" id="chart-lr"></section>
+    </div>
+    <script type="module" src="./layout-direction.ts"></script>
+  </body>
+</html>

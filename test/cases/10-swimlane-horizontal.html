@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>10 横向泳道（白板风格）- echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">10 横向泳道（白板风格）</h1>
+    <p class="case__desc">
+      仿在线白板的订单泳道图：<code>direction: 'LR'</code> 时泳道是横排的行，表头文字竖排在左侧。
+      使用 <code>whiteboard</code> 主题（点阵网格、2px 黑色连线、vee 箭头、大圆角），每条泳道用 <code>lane.nodeStyle</code> 设置自己的配色，
+      个别节点再用 <code>node.style</code> 覆盖（Done 绿色、No 白底、Add text 浅色文字）。坐标是手动给的，点"自动布局"可以对比 dagre 的结果。
+      拖动节点到另一行会自动换泳道；双击泳道表头或标题可以改文字。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" id="layout-button" type="button">自动布局</button>
+      <button class="case__button" id="undo-button" type="button">撤销</button>
+      <button class="case__button" id="add-lane-button" type="button">添加泳道</button>
+      <button class="case__button" id="grow-lane-button" type="button">Sales 加高 40</button>
+      <button class="case__button" id="remove-lane-button" type="button">删除最后一条泳道</button>
+      <button class="case__button" id="fit-button" type="button">适应画布</button>
+    </div>
+    <section class="case__chart" id="chart"></section>
+    <script type="module" src="./swimlane-horizontal.ts"></script>
+  </body>
+</html>

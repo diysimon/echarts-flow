@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>07 大图性能 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">07 大图性能</h1>
+    <p class="case__desc">
+      按层级生成 N 个节点的图（每层随节点数增长，约 1.3 倍连线），记录自动布局和首次渲染耗时。
+      生成后可以拖动节点、平移、缩放，感受交互帧率。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" type="button" data-count="50">50 节点</button>
+      <button class="case__button" type="button" data-count="200">200 节点</button>
+      <button class="case__button" type="button" data-count="500">500 节点</button>
+      <button class="case__button" type="button" data-count="1000">1000 节点</button>
+      <span class="case__stat" id="stats"></span>
+    </div>
+    <section class="case__chart" id="chart"></section>
+    <script type="module" src="./large-graph.ts"></script>
+  </body>
+</html>

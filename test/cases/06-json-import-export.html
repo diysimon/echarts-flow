@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>06 JSON 导入导出 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">06 JSON 导入导出</h1>
+    <p class="case__desc">
+      右侧文本框和画布双向同步：在画布上编辑后文本框实时更新；修改 JSON 后点"导入"调用 <code>setGraph</code>。
+      导入时会去掉坐标还是保留坐标可以选择；没有坐标的节点由 dagre 补齐，已有坐标的节点保持不动。
+      非法 JSON 或缺字段会给出错误提示，不影响画布。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" id="import-button" type="button">导入</button>
+      <label><input id="strip-toggle" type="checkbox" /> 导入时去掉坐标（重新布局）</label>
+      <button class="case__button" id="sample-button" type="button">载入示例</button>
+      <span class="case__stat" id="status"></span>
+    </div>
+    <div class="case__layout">
+      <section class="case__chart" id="chart"></section>
+      <aside class="case__side">
+        <span class="case__label">FlowGraph JSON</span>
+        <textarea class="case__textarea" id="json" spellcheck="false"></textarea>
+      </aside>
+    </div>
+    <script type="module" src="./json-import-export.ts"></script>
+  </body>
+</html>

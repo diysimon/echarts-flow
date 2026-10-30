@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>08 多实例与 SVG 渲染 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">08 多实例与 SVG 渲染</h1>
+    <p class="case__desc">
+      同一页面两个编辑器：左边 Canvas 渲染，右边 SVG 渲染。快捷键只作用于获得焦点的那个编辑器
+      （点一下画布即可聚焦），在一个里按 Delete 不应影响另一个。
+      下方按钮把各自内容导出为 PNG（Canvas）和 SVG 文件。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" id="export-png-button" type="button">导出左图 PNG</button>
+      <button class="case__button" id="export-svg-button" type="button">导出右图 SVG</button>
+    </div>
+    <div class="case__grid">
+      <section class="case__chart case__chart--short" id="chart-canvas"></section>
+      <section class="case__chart case__chart--short" id="chart-svg"></section>
+    </div>
+    <script type="module" src="./multi-instance.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>13 泳道场景集 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">13 泳道场景集</h1>
+    <p class="case__desc">
+      6 个常见业务的泳道图，数据都不带坐标，由自动布局生成。可以对每个场景切换方向、主题、紧凑泳道，
+      以及连线路由的两个开关：避障路由（绕开节点、平行线错开、走泳道边缘的通道）和端口分散（同一条边上的多条线分开接入）。
+      关掉这两个开关可以对比之前的简单路由。同样的数据在 <code>test/swimlaneRouting.test.ts</code> 里有自动检查：连线不能穿过节点。
+    </p>
+    <div class="case__toolbar">
+      <label>
+        场景
+        <select id="scenario-select"></select>
+      </label>
+      <label>
+        方向
+        <select id="direction-select">
+          <option value="TB">TB（竖向泳道）</option>
+          <option value="LR">LR（横向泳道）</option>
+        </select>
+      </label>
+      <label>
+        主题
+        <select id="theme-select">
+          <option value="light">light</option>
+          <option value="classic">classic</option>
+          <option value="whiteboard">whiteboard</option>
+          <option value="macarons">macarons</option>
+          <option value="dark">dark</option>
+          <option value="tech-blue">tech-blue</option>
+        </select>
+      </label>
+      <label><input id="compact-toggle" type="checkbox" /> 紧凑泳道</label>
+      <label><input id="smart-toggle" type="checkbox" checked /> 避障路由</label>
+      <label><input id="spread-toggle" type="checkbox" checked /> 端口分散</label>
+      <button class="case__button" id="layout-button" type="button">重新布局</button>
+    </div>
+    <p class="case__desc" id="scenario-desc"></p>
+    <section class="case__chart case__chart--tall" id="chart"></section>
+    <script type="module" src="./swimlane-gallery.ts"></script>
+  </body>
+</html>

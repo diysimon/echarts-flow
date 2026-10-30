@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>04 从空白画布编辑 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">04 从空白画布编辑</h1>
+    <p class="case__desc">
+      编辑器初始没有任何节点。用按钮添加节点（落在可见区域中心，重叠时自动错开），
+      悬停节点后从圆点拖出连线，双击改文字，Shift 点击多选后可以用"连接所选"按钮通过 API 连线。
+      右侧记录 <code>onChange</code> 和 <code>onSelectionChange</code> 回调。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" type="button" data-shape="start">+ 开始</button>
+      <button class="case__button" type="button" data-shape="process">+ 处理</button>
+      <button class="case__button" type="button" data-shape="decision">+ 判断</button>
+      <button class="case__button" type="button" data-shape="io">+ 输入/输出</button>
+      <button class="case__button" type="button" data-shape="end">+ 结束</button>
+      <button class="case__button" id="connect-button" type="button">连接所选两个节点</button>
+      <button class="case__button" id="undo-button" type="button">撤销</button>
+      <button class="case__button" id="redo-button" type="button">重做</button>
+      <button class="case__button" id="delete-button" type="button">删除所选</button>
+      <button class="case__button" id="layout-button" type="button">自动布局</button>
+      <button class="case__button" id="clear-button" type="button">清空</button>
+    </div>
+    <div class="case__layout">
+      <section class="case__chart" id="chart"></section>
+      <aside class="case__side">
+        <span class="case__label">回调日志</span>
+        <pre class="case__log" id="log"></pre>
+      </aside>
+    </div>
+    <script type="module" src="./blank-editor.ts"></script>
+  </body>
+</html>

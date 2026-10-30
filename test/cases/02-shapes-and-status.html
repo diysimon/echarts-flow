@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>02 节点形状与状态 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">02 节点形状与状态</h1>
+    <p class="case__desc">
+      每行一种形状（start / process / decision / io / end），每列一种状态（无 / pending / running / done / error）。
+      使用手动坐标，不走自动布局。进入 running 节点的连线显示流动虚线。
+      最后一行验证长文本：宽度自动增长，到主题的 node.maxWidth 后自动换行并增高（主题 text.overflow 设为 truncate 时改为单行截断）。
+    </p>
+    <section class="case__chart" id="chart"></section>
+    <script type="module" src="./shapes-and-status.ts"></script>
+  </body>
+</html>

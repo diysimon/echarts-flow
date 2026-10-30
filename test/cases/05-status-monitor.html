@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>05 运行状态监控 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">05 运行状态监控（只读）</h1>
+    <p class="case__desc">
+      模拟一条 CI/CD 流水线。编辑器设为 <code>isEditable: false</code>：可以选中、平移、缩放，但不能拖动、连线或删除。
+      通过 <code>setNodeStatus</code> 推进状态：并行的两个任务同时 running，"测试"节点会失败并重试一次。
+      状态变化不进入撤销历史。
+    </p>
+    <div class="case__toolbar">
+      <button class="case__button" id="run-button" type="button">开始运行</button>
+      <button class="case__button" id="reset-button" type="button">重置</button>
+      <label><input id="editable-toggle" type="checkbox" /> 允许编辑</label>
+      <span class="case__stat" id="step"></span>
+    </div>
+    <section class="case__chart" id="chart"></section>
+    <script type="module" src="./status-monitor.ts"></script>
+  </body>
+</html>

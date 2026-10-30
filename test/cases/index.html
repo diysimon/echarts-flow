@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>echarts-flow 用例</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <h1 class="case__title">echarts-flow 用例</h1>
+    <p class="case__desc">每个页面覆盖一类使用场景，用于手动验证和回归检查。运行 <code>npm run dev</code> 后访问本页。</p>
+    <ul class="case-list">
+      <li class="case-list__item">
+        <a class="case-list__link" href="./01-static-display.html">01 只读展示</a>
+        <p class="case-list__desc">不用编辑器，buildFlowOption 直接渲染；自动布局、居中、点击事件拿到命中信息。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./02-shapes-and-status.html">02 节点形状与状态</a>
+        <p class="case-list__desc">5 种形状 × 5 种状态矩阵，手动坐标，长文本自动加宽与截断。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./03-layout-direction.html">03 布局方向与回边</a>
+        <p class="case-list__desc">同一份带循环的数据分别用 TB 和 LR 布局，检查回边绕行。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./04-blank-editor.html">04 从空白画布编辑</a>
+        <p class="case-list__desc">添加节点、拖线、多选、API 连线、撤销重做，记录回调。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./05-status-monitor.html">05 运行状态监控</a>
+        <p class="case-list__desc">只读模式下按脚本推进 CI/CD 流水线状态，含并行、失败和重试。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./06-json-import-export.html">06 JSON 导入导出</a>
+        <p class="case-list__desc">画布与 JSON 双向同步，导入校验，可选去掉坐标重新布局。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./07-large-graph.html">07 大图性能</a>
+        <p class="case-list__desc">50 到 1000 个节点，记录布局与渲染耗时，检查交互流畅度。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./08-multi-instance.html">08 多实例与 SVG 渲染</a>
+        <p class="case-list__desc">Canvas 和 SVG 两个编辑器并存，快捷键隔离，导出 PNG / SVG。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./09-themes.html">09 主题</a>
+        <p class="case-list__desc">light / dark / macarons / tech-blue 四套内置主题对比，含选中、状态和缩放清晰度。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./10-swimlane-horizontal.html">10 横向泳道（白板风格）</a>
+        <p class="case-list__desc">LR 方向的行泳道、竖排表头、标题、每条泳道自己的节点配色；拖节点换泳道，增删泳道。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./11-swimlane-vertical.html">11 竖向泳道（经典风格）</a>
+        <p class="case-list__desc">TB 方向的列泳道，无坐标数据全自动布局，文字自动换行，可切换主题和曲线连线。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./12-style-gallery.html">12 样式配置大全</a>
+        <p class="case-list__desc">11 种形状、8 种箭头、3 种连线方式、连线与节点的样式覆盖，以及 createFlowTheme 自定义主题。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./13-swimlane-gallery.html">13 泳道场景集</a>
+        <p class="case-list__desc">请假、订单、CI/CD、工单、招聘、采购 6 个泳道场景，可切换方向、主题、紧凑泳道，对比避障路由开关。</p>
+      </li>
+      <li class="case-list__item">
+        <a class="case-list__link" href="./14-edit-options.html">14 编辑配置项与 API</a>
+        <p class="case-list__desc">逐项开关编辑能力、预设模式、缩放范围与网格、连线校验和删除确认、锁定节点，全部通过 setEditOptions 实时生效。</p>
+      </li>
+    </ul>
+  </body>
+</html>

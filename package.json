@@ -1,0 +1,60 @@
+{
+  "name": "echarts-flow",
+  "version": "0.1.0",
+  "description": "Editable flowchart and swimlane extension for Apache ECharts 6, built on registerable custom series",
+  "keywords": [
+    "echarts",
+    "echarts6",
+    "echarts-extension",
+    "custom-series",
+    "flowchart",
+    "swimlane",
+    "diagram",
+    "editor"
+  ],
+  "homepage": "https://github.com/diysimon/echarts-flow#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diysimon/echarts-flow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/diysimon/echarts-flow/issues"
+  },
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/echarts-flow.umd.cjs",
+  "module": "./dist/echarts-flow.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/echarts-flow.js",
+      "require": "./dist/echarts-flow.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "echarts": "^6.0.0"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^3.1.3"
+  },
+  "devDependencies": {
+    "echarts": "^6.1.0",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

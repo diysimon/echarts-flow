@@ -1,0 +1,174 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 16px 24px 32px;
+  font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  color: #1f2329;
+  background: #f5f6f7;
+}
+
+.case__nav {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.case__nav a {
+  color: #3370ff;
+  text-decoration: none;
+}
+
+.case__title {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.case__desc {
+  margin: 0 0 12px;
+  color: #646a73;
+  line-height: 1.6;
+}
+
+.case__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.case__button {
+  padding: 5px 12px;
+  font-size: 13px;
+  color: #1f2329;
+  background: #ffffff;
+  border: 1px solid #d0d3d6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.case__button:hover {
+  color: #3370ff;
+  border-color: #3370ff;
+}
+
+.case__layout {
+  display: flex;
+  gap: 12px;
+}
+
+.case__chart {
+  flex: 1;
+  min-width: 0;
+  height: 560px;
+  background-color: #ffffff;
+  background-image: radial-gradient(#e4e6eb 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 1px solid #e4e6eb;
+  border-radius: 6px;
+  outline: none;
+  /* Dark themes paint the canvas; clip it to the rounded border. */
+  overflow: hidden;
+}
+
+.case__chart:focus-visible {
+  border-color: #3370ff;
+}
+
+.case__chart--short {
+  height: 380px;
+}
+
+.case__chart--tall {
+  height: 860px;
+}
+
+.case__side {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.case__label {
+  font-weight: 600;
+}
+
+.case__log,
+.case__textarea {
+  margin: 0;
+  padding: 8px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  background: #ffffff;
+  border: 1px solid #e4e6eb;
+  border-radius: 6px;
+}
+
+.case__log {
+  height: 520px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.case__log--short {
+  height: 160px;
+}
+
+.case__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+
+.case__options input[type='number'] {
+  width: 70px;
+}
+
+.case__textarea {
+  height: 480px;
+  resize: vertical;
+}
+
+.case__stat {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+}
+
+.case__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.case-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.case-list__item {
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #e4e6eb;
+  border-radius: 6px;
+}
+
+.case-list__link {
+  font-weight: 600;
+  color: #3370ff;
+  text-decoration: none;
+}
+
+.case-list__desc {
+  margin: 6px 0 0;
+  color: #646a73;
+  line-height: 1.5;
+}
