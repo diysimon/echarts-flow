@@ -1,27 +1,29 @@
 # echarts-flow
 
-基于 [Apache ECharts 6](https://echarts.apache.org/) 可注册自定义系列（`registerCustomSeries`）的流程图与泳道图扩展，支持只读展示和完整编辑。
+English | [简体中文](./README.zh-CN.md)
 
-- 11 种节点形状：开始、结束、处理、判断、输入/输出、圆形、六边形、文档、数据库、子流程、纯文本
-- 泳道：横向（行）或竖向（列）、标题、按泳道配色、拖动节点换泳道
-- 自动布局（dagre），可选紧凑泳道
-- 避障正交路由：绕开节点、平行线错开、端口分散；也支持直线和曲线
-- 6 套内置主题，可用 `createFlowTheme` 深度覆盖；节点、连线、泳道可单独设置样式
-- 编辑器：拖动、连线、双击改文字、多选、删除、撤销重做、平移缩放；每项能力都可配置
-- 运行状态展示：pending / running / done / error，运行中的连线有流动动画
-- Canvas 与 SVG 渲染都可用，文字按整像素绘制，缩放后依然清晰
+Flowchart and swimlane extension for [Apache ECharts 6](https://echarts.apache.org/), built on registerable custom series (`registerCustomSeries`). Use it as a read-only chart or as a full editor.
 
-## 安装
+- 11 node shapes: start, end, process, decision, input/output, circle, hexagon, document, database, subprocess, plain text
+- Swimlanes: horizontal (rows) or vertical (columns), title bar, per-lane colors, drag a node into another lane
+- Auto layout (dagre), with an optional compact lane mode
+- Obstacle-avoiding orthogonal routing: edges go around nodes, parallel edges stay apart, ports are spread; straight and curved edges are also available
+- 6 built-in themes, deep overrides with `createFlowTheme`, and per-node, per-edge and per-lane styles
+- Editor: drag, connect, double-click to rename, multi-select, delete, undo/redo, pan and zoom; every capability is configurable
+- Run status: pending / running / done / error, with a flowing dash on edges into running nodes
+- Works with the Canvas and SVG renderers; text is drawn on whole pixels and stays sharp when zoomed
+
+## Install
 
 ```bash
 npm install echarts echarts-flow
 ```
 
-`echarts` 是 peer 依赖，需要 6.0 及以上。
+`echarts` is a peer dependency and must be 6.0 or later.
 
-## 快速开始
+## Quick start
 
-### 只读展示
+### Read-only chart
 
 ```ts
 import { init, use } from 'echarts/core';
@@ -33,15 +35,15 @@ use([CustomChart, CanvasRenderer, flowExtension]);
 
 const graph: FlowGraph = {
   nodes: [
-    { id: 'start', label: '提交申请', shape: 'start' },
-    { id: 'check', label: '金额大于 5000?', shape: 'decision' },
-    { id: 'approve', label: '经理审批', shape: 'process' },
-    { id: 'end', label: '结束', shape: 'end' },
+    { id: 'start', label: 'Submit request', shape: 'start' },
+    { id: 'check', label: 'Amount > 5000?', shape: 'decision' },
+    { id: 'approve', label: 'Manager approval', shape: 'process' },
+    { id: 'end', label: 'Done', shape: 'end' },
   ],
   edges: [
     { id: 'e1', source: 'start', target: 'check' },
-    { id: 'e2', source: 'check', target: 'approve', label: '是' },
-    { id: 'e3', source: 'check', target: 'end', label: '否' },
+    { id: 'e2', source: 'check', target: 'approve', label: 'Yes' },
+    { id: 'e3', source: 'check', target: 'end', label: 'No' },
     { id: 'e4', source: 'approve', target: 'end' },
   ],
 };
@@ -51,9 +53,9 @@ const viewport = calcFitViewport(graph, chart.getWidth(), chart.getHeight());
 chart.setOption(buildFlowOption(graph, { viewport, theme: 'light' }));
 ```
 
-节点没有坐标时会自动布局。
+Nodes without coordinates are laid out automatically.
 
-### 编辑器
+### Editor
 
 ```ts
 import { FlowEditor } from 'echarts-flow';
@@ -65,13 +67,13 @@ const editor = new FlowEditor(chart, {
   onChange: (graph) => save(graph),
 });
 
-editor.addNode({ shape: 'process', label: '新步骤' });
-editor.connect('start', 'approve', '是');
+editor.addNode({ shape: 'process', label: 'New step' });
+editor.connect('start', 'approve', 'Yes');
 editor.autoLayout();
 editor.undo();
 ```
 
-## 数据结构
+## Data model
 
 ```ts
 interface FlowGraph {
@@ -82,20 +84,20 @@ interface FlowGraph {
 }
 ```
 
-坐标是节点中心点。`label` 中的 `\n` 会保留为换行，过长的文字自动换行并撑高节点。
+Coordinates are node centers. A `\n` in `label` is kept as a line break; long labels wrap and make the node taller.
 
-## 泳道
+## Swimlanes
 
 ```ts
 const graph: FlowGraph = {
-  title: '订单流程',
+  title: 'Order flow',
   lanes: [
-    { id: 'customer', label: '客户', nodeStyle: { fill: '#ffc9cf', stroke: '#ef4b5d' } },
-    { id: 'sales', label: '销售' },
+    { id: 'customer', label: 'Customer', nodeStyle: { fill: '#ffc9cf', stroke: '#ef4b5d' } },
+    { id: 'sales', label: 'Sales' },
   ],
   nodes: [
-    { id: 'order', label: '下单', shape: 'start', laneId: 'customer' },
-    { id: 'confirm', label: '确认订单', shape: 'process', laneId: 'sales' },
+    { id: 'order', label: 'Place order', shape: 'start', laneId: 'customer' },
+    { id: 'confirm', label: 'Confirm order', shape: 'process', laneId: 'sales' },
   ],
   edges: [{ id: 'e1', source: 'order', target: 'confirm' }],
 };
@@ -103,13 +105,13 @@ const graph: FlowGraph = {
 new FlowEditor(chart, { graph, direction: 'LR', theme: 'whiteboard', layout: { isLaneCompact: false } });
 ```
 
-- `direction: 'TB'`：泳道是竖排的列，表头在顶部；`'LR'`：泳道是横排的行，表头在左侧。
-- `layout.isLaneCompact`：每条泳道从顶部开始排，适合手绘风格的分栏流程图。
-- 编辑器 API：`addLane`、`updateLane`（改尺寸会平移后面泳道的节点）、`removeLane`、`setTitle`。
+- `direction: 'TB'` makes lanes vertical columns with headers on top; `'LR'` makes them horizontal rows with headers on the left.
+- `layout.isLaneCompact` starts every lane at the top, like hand-drawn column flowcharts.
+- Editor API: `addLane`, `updateLane` (a size change shifts nodes in later lanes), `removeLane`, `setTitle`.
 
-## 主题与样式
+## Themes and styles
 
-内置主题：`light`、`dark`、`macarons`、`tech-blue`、`whiteboard`、`classic`。
+Built-in themes: `light`, `dark`, `macarons`, `tech-blue`, `whiteboard`, `classic`.
 
 ```ts
 import { createFlowTheme, lightTheme } from 'echarts-flow';
@@ -122,14 +124,14 @@ const myTheme = createFlowTheme(lightTheme, {
 editor.setTheme(myTheme);
 ```
 
-样式优先级：主题 < 泳道 `nodeStyle` < 节点/连线自己的 `style`。
+Style precedence: theme < lane `nodeStyle` < the node's or edge's own `style`.
 
-- 节点 `style`：`fill`、`stroke`、`lineWidth`、`lineDash`、`textColor`、`fontSize`、`fontWeight`、`radius`、`shadow*`、`opacity`
-- 连线 `style`：`stroke`、`lineWidth`、`lineDash`、`routing`（`orthogonal` / `straight` / `curved`）、`cornerRadius`、
-  `sourceArrow` / `targetArrow`（`triangle`、`triangle-open`、`vee`、`circle`、`circle-open`、`diamond`、`diamond-open`、`none`）、
-  `arrowSize`、`label*`、`opacity`
+- Node `style`: `fill`, `stroke`, `lineWidth`, `lineDash`, `textColor`, `fontSize`, `fontWeight`, `radius`, `shadow*`, `opacity`
+- Edge `style`: `stroke`, `lineWidth`, `lineDash`, `routing` (`orthogonal` / `straight` / `curved`), `cornerRadius`,
+  `sourceArrow` / `targetArrow` (`triangle`, `triangle-open`, `vee`, `circle`, `circle-open`, `diamond`, `diamond-open`, `none`),
+  `arrowSize`, `label*`, `opacity`
 
-## 编辑配置
+## Edit options
 
 ```ts
 const editor = new FlowEditor(chart, {
@@ -138,45 +140,45 @@ const editor = new FlowEditor(chart, {
     canDelete: false,
     maxZoom: 2,
     validateConnection: (sourceId, targetId) => targetId !== 'start',
-    beforeDelete: (selection) => confirm(`删除 ${selection.nodeIds.length} 个节点？`),
+    beforeDelete: (selection) => confirm(`Delete ${selection.nodeIds.length} nodes?`),
   },
 });
 
-editor.setEditOptions({ isEnabled: false }); // 运行时修改，只改传入的几项
+editor.setEditOptions({ isEnabled: false }); // change at runtime; only the given options change
 editor.getEditOptions();
 ```
 
-| 配置 | 说明 |
+| Option | Description |
 | --- | --- |
-| `isEnabled` | 总开关，关闭后只读（仍可选择、平移、缩放） |
-| `canSelect` / `canMultiSelect` | 选择、多选 |
-| `canMoveNodes` / `canConnect` / `canEditLabels` / `canDelete` / `canUndo` / `canChangeLane` | 各项编辑能力 |
-| `canPan` / `canZoom` / `hasKeyboardShortcuts` | 平移、滚轮缩放、键盘快捷键 |
-| `shouldSnapToGrid` / `gridSize` | 网格吸附 |
-| `minZoom` / `maxZoom` / `wheelZoomSpeed` | 缩放范围和速度 |
-| `validateConnection` / `beforeDelete` | 数据规则，对用户操作和 API 都生效，传 `null` 移除 |
+| `isEnabled` | Master switch; when off the canvas is read-only (selecting, panning and zooming still work) |
+| `canSelect` / `canMultiSelect` | Select, multi-select |
+| `canMoveNodes` / `canConnect` / `canEditLabels` / `canDelete` / `canUndo` / `canChangeLane` | Individual editing actions |
+| `canPan` / `canZoom` / `hasKeyboardShortcuts` | Panning, wheel zoom, keyboard shortcuts |
+| `shouldSnapToGrid` / `gridSize` | Grid snapping |
+| `minZoom` / `maxZoom` / `wheelZoomSpeed` | Zoom range and speed |
+| `validateConnection` / `beforeDelete` | Data rules that apply to both user actions and API calls; pass `null` to remove |
 
-开关只限制鼠标和键盘操作，`addNode()`、`connect()` 等 API 调用不受影响。节点或连线设置 `isLocked: true` 后不能被拖动、改名或删除。
+The switches only limit mouse and keyboard interaction; API calls such as `addNode()` and `connect()` always work. Nodes and edges with `isLocked: true` cannot be moved, renamed or deleted.
 
-## 连线路由
+## Edge routing
 
 ```ts
 new FlowEditor(chart, { graph, routing: { isSmart: true, shouldSpreadPorts: true, maxSmartNodes: 150 } });
 ```
 
-正交连线默认使用避障路由：绕开节点、走泳道边缘的通道、平行线错开、同一条边上的多条线分开接入。
-节点数超过 `maxSmartNodes` 时回退为简单路由。
+Orthogonal edges use obstacle-avoiding routing by default: they go around nodes, use channels along lane borders, keep parallel edges apart and spread several edges on one node side.
+Above `maxSmartNodes` nodes, routing falls back to the simple router.
 
-## 本地开发
+## Development
 
 ```bash
 npm install
-npm run dev      # 打开 http://localhost:5173/ 是 demo，/test/cases/index.html 是全部用例
+npm run dev      # http://localhost:5173/ is the demo, /test/cases/index.html lists all test cases
 npm test
-npm run check    # 类型检查 + 测试 + 构建
+npm run check    # typecheck + tests + build
 ```
 
-`test/cases/` 下有 14 个用例页面，覆盖只读展示、形状与状态、布局方向、编辑、运行监控、JSON 导入导出、大图性能、多实例、主题、泳道、样式配置和编辑配置。
+`test/cases/` holds 14 pages covering read-only charts, shapes and status, layout direction, editing, run monitoring, JSON import/export, large graphs, multiple instances, themes, swimlanes, style options and edit options.
 
 ## License
 
