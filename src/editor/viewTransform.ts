@@ -1,6 +1,7 @@
 import type { EChartsType } from 'echarts';
 import type { Viewport } from '../types';
 import { FLOW_GRID_SERIES_ID } from '../render/flowPayload';
+import { snapToPixel } from '../render/pixelAlign';
 import { GRID_ELEMENT_NAME } from '../render/renderFlowGrid';
 
 /** The zrender group fields used here; ECharts has no public API for moving a series as a whole. */
@@ -44,18 +45,22 @@ export class ViewTransformer {
 
   constructor(private readonly chart: EChartsType) {}
 
-  /** Shows `next` by transforming the frame drawn for `rendered`. Returns false when that is not possible. */
-  apply(rendered: Viewport, next: Viewport, gridStep: number): boolean {
+  /**
+   * Shows `next` by transforming the frame drawn for `rendered`. Offsets snap
+   * to the device pixel grid of `pixelRatio` so the moved picture stays sharp.
+   * Returns false when that is not possible.
+   */
+  apply(rendered: Viewport, next: Viewport, gridStep: number, pixelRatio = 1): boolean {
     const groups = this.findSeriesGroups();
     if (!groups) {
       return false;
     }
     const scale = next.scale / rendered.scale;
-    const x = Math.round(next.x - rendered.x * scale);
-    const y = Math.round(next.y - rendered.y * scale);
+    const x = snapToPixel(next.x - rendered.x * scale, pixelRatio);
+    const y = snapToPixel(next.y - rendered.y * scale, pixelRatio);
     groups.forEach((group, seriesId) => {
       if (seriesId === FLOW_GRID_SERIES_ID) {
-        this.slideGrid(group, scale === 1 ? x : 0, scale === 1 ? y : 0, gridStep);
+        this.slideGrid(group, scale === 1 ? x : 0, scale === 1 ? y : 0, gridStep, pixelRatio);
       } else {
         setTransform(group, x, y, scale);
       }
@@ -81,11 +86,11 @@ export class ViewTransformer {
   }
 
   /** The grid repeats every cell, so sliding it by the offset modulo one cell looks the same as moving it. */
-  private slideGrid(group: ZrGroupLike, x: number, y: number, step: number): void {
+  private slideGrid(group: ZrGroupLike, x: number, y: number, step: number, pixelRatio = 1): void {
     const wrap = (value: number) => (step > 0 ? ((value % step) + step) % step : 0);
     group.traverse((element) => {
       if (element.name === GRID_ELEMENT_NAME) {
-        setTransform(element, Math.round(wrap(x)), Math.round(wrap(y)), 1);
+        setTransform(element, snapToPixel(wrap(x), pixelRatio), snapToPixel(wrap(y), pixelRatio), 1);
       }
     });
   }

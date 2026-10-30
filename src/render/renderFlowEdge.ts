@@ -5,7 +5,8 @@ import { buildCurvePath, buildRoundedPath, shortenEnd, shortenStart } from '../g
 import { EDGE_HIT_WIDTH } from '../theme/flowStyle';
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowEdgePayload, FlowHitInfo, RenderedEdge } from './flowPayload';
-import { projectPoint } from './pixelAlign';
+import { isTransparent } from './flowColor';
+import { projectPoint, snapLineWidth, snapToPixel } from './pixelAlign';
 import { MIN_LABEL_PIXELS, type ElementOption } from './renderFlowNode';
 
 /** Running dashes are in screen pixels so the flow speed looks the same at every zoom. */
@@ -25,6 +26,7 @@ interface EdgeView {
   scale: number;
   color: string;
   lineWidth: number;
+  pixelRatio: number;
 }
 
 function calcEdgeColor(edge: RenderedEdge, isSelected: boolean, theme: FlowTheme): string {
@@ -76,6 +78,19 @@ function buildArrow(view: EdgeView, type: ArrowType, from: Point, tip: Point, na
   return { element, inset: geometry.inset };
 }
 
+/**
+ * On text with a background box, the plain shadow props shadow the box, not
+ * the glyphs. They are left out entirely when the theme has no label shadow:
+ * the SVG renderer draws a transparent shadow color as a dark one.
+ */
+function buildLabelShadow(view: EdgeView) {
+  const color = view.theme.edge.labelShadowColor;
+  if (isTransparent(color)) {
+    return {};
+  }
+  return { shadowColor: color, shadowBlur: LABEL_SHADOW_BLUR * view.scale, shadowOffsetY: LABEL_SHADOW_OFFSET_Y * view.scale };
+}
+
 function buildLabel(view: EdgeView, info: FlowHitInfo): ElementOption | null {
   const { edge, theme, scale } = view;
   if (!edge.label || edge.isDraft || edge.appearance.labelFontSize * scale < MIN_LABEL_PIXELS) {
@@ -86,8 +101,8 @@ function buildLabel(view: EdgeView, info: FlowHitInfo): ElementOption | null {
     type: 'text',
     name: 'label',
     info,
-    x: Math.round(edge.labelPosition.x * scale),
-    y: Math.round(edge.labelPosition.y * scale),
+    x: snapToPixel(edge.labelPosition.x * scale, view.pixelRatio),
+    y: snapToPixel(edge.labelPosition.y * scale, view.pixelRatio),
     style: {
       text: edge.label,
       fill: appearance.labelColor,
@@ -100,10 +115,7 @@ function buildLabel(view: EdgeView, info: FlowHitInfo): ElementOption | null {
       borderWidth: 1,
       borderRadius: theme.edge.labelRadius * scale,
       padding: LABEL_PADDING.map((value) => Math.round(value * scale)),
-      // On text with a background box, the plain shadow props shadow the box, not the glyphs.
-      shadowColor: theme.edge.labelShadowColor,
-      shadowBlur: LABEL_SHADOW_BLUR * scale,
-      shadowOffsetY: LABEL_SHADOW_OFFSET_Y * scale,
+      ...buildLabelShadow(view),
       opacity: appearance.opacity,
     },
   };
@@ -119,12 +131,13 @@ export function renderFlowEdge(params: CustomSeriesRenderItemParams): CustomSeri
   const { scale } = viewport;
   const { appearance } = edge;
   const isSelected = payload.selectedIds.includes(edge.id);
-  const lineWidth = isSelected ? appearance.activeLineWidth : appearance.lineWidth;
-  const view: EdgeView = { edge, theme, scale, color: calcEdgeColor(edge, isSelected, theme), lineWidth };
+  const pixelRatio = payload.pixelRatio ?? 1;
+  const lineWidth = snapLineWidth(isSelected ? appearance.activeLineWidth : appearance.lineWidth, pixelRatio);
+  const view: EdgeView = { edge, theme, scale, color: calcEdgeColor(edge, isSelected, theme), lineWidth, pixelRatio };
   const info: FlowHitInfo = { role: 'edge', edgeId: edge.id };
 
   // Project without the viewport offset; the group applies it as a whole pixel.
-  const points = edge.points.map((point) => projectPoint({ ...viewport, x: 0, y: 0 }, point, lineWidth));
+  const points = edge.points.map((point) => projectPoint({ ...viewport, x: 0, y: 0 }, point, lineWidth, pixelRatio));
   const last = points.length - 1;
   const targetArrow = buildArrow(view, appearance.targetArrow, points[last - 1], points[last], 'arrow-target');
   const sourceArrow = buildArrow(view, appearance.sourceArrow, points[1], points[0], 'arrow-source');
@@ -167,9 +180,9 @@ export function renderFlowEdge(params: CustomSeriesRenderItemParams): CustomSeri
 
   return {
     type: 'group',
-    // Integer offset keeps the half-pixel alignment of the projected points.
-    x: Math.round(viewport.x),
-    y: Math.round(viewport.y),
+    // A whole device pixel offset keeps the half-pixel alignment of the projected points.
+    x: snapToPixel(viewport.x, pixelRatio),
+    y: snapToPixel(viewport.y, pixelRatio),
     emphasisDisabled: true,
     silent: edge.isDraft,
     children: children.filter((child): child is ElementOption => child !== null),

@@ -87,7 +87,8 @@ export function exportFlowPng(graph: FlowGraph, options: FlowImageOptions = {}):
   const pixelRatio = options.pixelRatio ?? DEFAULT_PIXEL_RATIO;
   const chart = init(container, null, { renderer: 'canvas', width: frame.width, height: frame.height, devicePixelRatio: pixelRatio });
   try {
-    chart.setOption(buildExportOption(frame, options));
+    // Snap to the image's own pixel grid, not the screen's.
+    chart.setOption(buildExportOption({ ...frame, config: { ...frame.config, pixelRatio } }, options));
     return chart.getDataURL({ type: 'png', pixelRatio });
   } finally {
     chart.dispose();

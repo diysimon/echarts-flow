@@ -1,6 +1,7 @@
 import type { CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams, CustomSeriesRenderItemReturn } from 'echarts';
 import type { FlowBackdropBlob } from '../theme/flowTheme';
 import type { FlowGridPayload } from './flowPayload';
+import { alignToPixel, snapLineWidth, snapToPixel } from './pixelAlign';
 import type { ElementOption } from './renderFlowNode';
 
 /** Skip the grid when zoomed out so far that cells would be denser than this. */
@@ -19,7 +20,15 @@ function calcGridStart(offset: number, step: number): number {
  * and bottom, so the editor can slide it by up to one cell while panning
  * without exposing an edge.
  */
-export function buildGridPath(type: 'dot' | 'line', step: number, offsetX: number, offsetY: number, width: number, height: number): string {
+export function buildGridPath(
+  type: 'dot' | 'line',
+  step: number,
+  offsetX: number,
+  offsetY: number,
+  width: number,
+  height: number,
+  ratio = 1,
+): string {
   const startX = calcGridStart(offsetX, step);
   const startY = calcGridStart(offsetY, step);
   const endX = width + step;
@@ -27,18 +36,19 @@ export function buildGridPath(type: 'dot' | 'line', step: number, offsetX: numbe
   const commands: string[] = [];
   if (type === 'line') {
     for (let x = startX; x <= endX; x += step) {
-      const lineX = Math.round(x) + 0.5;
+      const lineX = alignToPixel(x, 1, ratio);
       commands.push(`M${lineX},${-step} L${lineX},${endY}`);
     }
     for (let y = startY; y <= endY; y += step) {
-      const lineY = Math.round(y) + 0.5;
+      const lineY = alignToPixel(y, 1, ratio);
       commands.push(`M${-step},${lineY} L${endX},${lineY}`);
     }
     return commands.join(' ');
   }
+  const dot = snapLineWidth(DOT_SIZE, ratio);
   for (let x = startX; x <= endX; x += step) {
     for (let y = startY; y <= endY; y += step) {
-      commands.push(`M${Math.round(x)},${Math.round(y)} h${DOT_SIZE} v${DOT_SIZE} h${-DOT_SIZE} Z`);
+      commands.push(`M${snapToPixel(x, ratio)},${snapToPixel(y, ratio)} h${dot} v${dot} h${-dot} Z`);
     }
   }
   return commands.join(' ');
@@ -72,9 +82,10 @@ function buildGrid(payload: FlowGridPayload, width: number, height: number): Ele
   if (grid.type === 'none' || step < MIN_CELL_PIXELS) {
     return null;
   }
-  const pathData = buildGridPath(grid.type, step, viewport.x, viewport.y, width, height);
+  const ratio = payload.pixelRatio ?? 1;
+  const pathData = buildGridPath(grid.type, step, viewport.x, viewport.y, width, height, ratio);
   const style = grid.type === 'line'
-    ? { fill: 'none', stroke: grid.color, lineWidth: 1 }
+    ? { fill: 'none', stroke: grid.color, lineWidth: snapLineWidth(1, ratio) }
     : { fill: grid.color, stroke: 'none' };
   // x and y are set explicitly because the editor moves this element while panning.
   return { type: 'path', name: GRID_ELEMENT_NAME, silent: true, x: 0, y: 0, shape: { pathData }, style };

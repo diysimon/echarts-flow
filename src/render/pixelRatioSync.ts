@@ -54,9 +54,10 @@ export function applyDevicePixelRatio(chart: EChartsType, ratio: number): boolea
  * Keeps the canvas sharp when the pixel ratio changes after init: browser
  * zoom, or moving the window between a Retina and a regular display.
  * Without this the old bitmap is stretched and text turns soft.
- * Returns a function that stops watching.
+ * `onChange` runs after the change, for example to redraw with the new
+ * `pixelRatio` in `buildFlowOption`. Returns a function that stops watching.
  */
-export function watchDevicePixelRatio(chart: EChartsType): () => void {
+export function watchDevicePixelRatio(chart: EChartsType, onChange?: (ratio: number) => void): () => void {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return () => {};
   }
@@ -64,6 +65,7 @@ export function watchDevicePixelRatio(chart: EChartsType): () => void {
   const handleChange = (): void => {
     applyDevicePixelRatio(chart, window.devicePixelRatio);
     listen();
+    onChange?.(window.devicePixelRatio);
   };
   // A resolution query only matches one ratio, so re-arm it after each change.
   function listen(): void {

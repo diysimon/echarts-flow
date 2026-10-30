@@ -17,6 +17,7 @@ const CASE_PAGES = [
   '14-edit-options',
   '15-aurora',
   '16-export-interop',
+  '17-text-clarity',
 ];
 const RENDERERS = ['canvas', 'svg'] as const;
 /** Light theme has no grid, so an empty editor paints nothing and creates no canvas. */

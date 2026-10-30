@@ -14,7 +14,13 @@ export const FLOW_GRID_SERIES_ID = 'echarts-flow-grid';
 export const FLOW_OVERLAY_SERIES_ID = 'echarts-flow-overlay';
 export const DRAFT_EDGE_ID = '__echarts_flow_draft__';
 
-export interface FlowNodePayload {
+/** Every payload carries the device pixel ratio, so shapes and text snap to device pixels. */
+interface PixelGridPayload {
+  /** Device pixels per CSS pixel. Defaults to 1. */
+  pixelRatio?: number;
+}
+
+export interface FlowNodePayload extends PixelGridPayload {
   nodes: ResolvedNode[];
   viewport: Viewport;
   selectedIds: string[];
@@ -30,14 +36,14 @@ export interface RenderedEdge extends ResolvedEdge {
   isRunning: boolean;
 }
 
-export interface FlowEdgePayload {
+export interface FlowEdgePayload extends PixelGridPayload {
   edges: RenderedEdge[];
   viewport: Viewport;
   selectedIds: string[];
   theme: FlowTheme;
 }
 
-export interface FlowLanePayload {
+export interface FlowLanePayload extends PixelGridPayload {
   lanes: LaneBox[];
   /** Rendered as the data item after the last lane. */
   title: TitleBox | null;
@@ -45,7 +51,7 @@ export interface FlowLanePayload {
   theme: FlowTheme;
 }
 
-export interface FlowGridPayload {
+export interface FlowGridPayload extends PixelGridPayload {
   viewport: Viewport;
   theme: FlowTheme;
 }
@@ -70,7 +76,7 @@ export interface EdgeHandle {
 }
 
 /** Editor feedback drawn above everything: selection box, guides, edge handles. */
-export interface FlowOverlayPayload {
+export interface FlowOverlayPayload extends PixelGridPayload {
   viewport: Viewport;
   theme: FlowTheme;
   /** Box-selection rectangle in world coordinates. */

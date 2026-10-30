@@ -29,6 +29,11 @@ function buildMatrixGraph(): FlowGraph {
 
 const graph = buildMatrixGraph();
 const chart = initCaseChart(getElement<HTMLElement>('#chart'));
-watchDevicePixelRatio(chart);
 const viewport = calcFitViewport(graph, chart.getWidth(), chart.getHeight());
-chart.setOption(buildFlowOption(graph, { viewport }));
+
+function renderChart(): void {
+  chart.setOption(buildFlowOption(graph, { viewport, pixelRatio: chart.getDevicePixelRatio() }));
+}
+
+watchDevicePixelRatio(chart, renderChart);
+renderChart();

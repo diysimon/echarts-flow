@@ -1,7 +1,7 @@
 import type { CustomSeriesRenderItemParams, CustomSeriesRenderItemReturn } from 'echarts';
 import { toScreen } from '../geometry/viewport';
 import type { AlignGuide, EdgeHandle, FlowHitInfo, FlowOverlayPayload } from './flowPayload';
-import { alignToPixel } from './pixelAlign';
+import { alignToPixel, snapLineWidth, snapToPixel } from './pixelAlign';
 import type { ElementOption } from './renderFlowNode';
 
 const SELECTION_BOX_FILL_OPACITY = 0.08;
@@ -15,22 +15,23 @@ function buildSelectionBox(payload: FlowOverlayPayload): ElementOption | null {
   if (!selectionBox) {
     return null;
   }
+  const ratio = payload.pixelRatio ?? 1;
   const topLeft = toScreen(viewport, selectionBox);
   return {
     type: 'rect',
     name: 'selection-box',
     silent: true,
     shape: {
-      x: alignToPixel(topLeft.x, 1),
-      y: alignToPixel(topLeft.y, 1),
-      width: Math.round(selectionBox.width * viewport.scale),
-      height: Math.round(selectionBox.height * viewport.scale),
+      x: alignToPixel(topLeft.x, 1, ratio),
+      y: alignToPixel(topLeft.y, 1, ratio),
+      width: snapToPixel(selectionBox.width * viewport.scale, ratio),
+      height: snapToPixel(selectionBox.height * viewport.scale, ratio),
     },
     style: {
       fill: theme.selected,
       fillOpacity: SELECTION_BOX_FILL_OPACITY,
       stroke: theme.selected,
-      lineWidth: 1,
+      lineWidth: snapLineWidth(1, ratio),
       lineDash: SELECTION_BOX_DASH,
     },
   };
@@ -38,18 +39,19 @@ function buildSelectionBox(payload: FlowOverlayPayload): ElementOption | null {
 
 function buildGuide(payload: FlowOverlayPayload, guide: AlignGuide, index: number): ElementOption {
   const { viewport, theme } = payload;
+  const ratio = payload.pixelRatio ?? 1;
   const isVertical = guide.axis === 'x';
   const start = toScreen(viewport, isVertical ? { x: guide.position, y: guide.start } : { x: guide.start, y: guide.position });
   const end = toScreen(viewport, isVertical ? { x: guide.position, y: guide.end } : { x: guide.end, y: guide.position });
-  const across = alignToPixel(isVertical ? start.x : start.y, GUIDE_LINE_WIDTH);
+  const across = alignToPixel(isVertical ? start.x : start.y, GUIDE_LINE_WIDTH, ratio);
   return {
     type: 'line',
     name: `guide-${index}`,
     silent: true,
     shape: isVertical
-      ? { x1: across, y1: Math.round(start.y), x2: across, y2: Math.round(end.y) }
-      : { x1: Math.round(start.x), y1: across, x2: Math.round(end.x), y2: across },
-    style: { stroke: theme.selected, lineWidth: GUIDE_LINE_WIDTH, lineDash: GUIDE_DASH },
+      ? { x1: across, y1: snapToPixel(start.y, ratio), x2: across, y2: snapToPixel(end.y, ratio) }
+      : { x1: snapToPixel(start.x, ratio), y1: across, x2: snapToPixel(end.x, ratio), y2: across },
+    style: { stroke: theme.selected, lineWidth: snapLineWidth(GUIDE_LINE_WIDTH, ratio), lineDash: GUIDE_DASH },
   };
 }
 
@@ -61,7 +63,7 @@ function buildEdgeHandle(payload: FlowOverlayPayload, handle: EdgeHandle): Eleme
     type: 'circle',
     name: `edge-handle-${handle.end}`,
     info,
-    shape: { cx: Math.round(center.x), cy: Math.round(center.y), r: theme.port.radius },
+    shape: { cx: snapToPixel(center.x, payload.pixelRatio), cy: snapToPixel(center.y, payload.pixelRatio), r: theme.port.radius },
     style: { fill: theme.port.fill, stroke: theme.selected, lineWidth: HANDLE_LINE_WIDTH },
   };
 }

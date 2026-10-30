@@ -524,6 +524,7 @@ export class FlowEditor {
       direction: this.direction,
       viewport: this.viewport,
       viewSize: { width: this.chart.getWidth(), height: this.chart.getHeight() },
+      pixelRatio: this.chart.getDevicePixelRatio(),
       selection: this.selection,
       hoveredNodeId: this.hoveredNodeId,
       draftEdge: this.getDraftEdge(),
@@ -725,7 +726,7 @@ export class FlowEditor {
       return false;
     }
     const gridStep = this.getTheme().grid.size * this.renderedViewport.scale;
-    return this.viewTransformer.apply(this.renderedViewport, this.viewport, gridStep);
+    return this.viewTransformer.apply(this.renderedViewport, this.viewport, gridStep, this.chart.getDevicePixelRatio());
   }
 
   /** Wheel zoom has no end event, so redraw sharply once the wheel has been still for a moment. */
@@ -775,7 +776,7 @@ export class FlowEditor {
     this.chart.getZr().on('globalout', this.handlePointerLeave);
     this.container.addEventListener('wheel', this.handleWheel, { passive: false });
     this.container.addEventListener('keydown', this.handleKeyDown);
-    this.stopWatchingPixelRatio = watchDevicePixelRatio(this.chart);
+    this.stopWatchingPixelRatio = watchDevicePixelRatio(this.chart, () => this.render());
   }
 
   private unbindEvents(): void {

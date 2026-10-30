@@ -23,13 +23,15 @@ const ORDER_GRAPH: FlowGraph = {
 const container = getElement<HTMLElement>('#chart');
 const log = createLogger(getElement<HTMLElement>('#log'));
 const chart = initCaseChart(container);
-// Without FlowEditor, keep the canvas sharp across browser zoom and display changes manually.
-watchDevicePixelRatio(chart);
 
 function renderChart(): void {
   const viewport = calcFitViewport(ORDER_GRAPH, chart.getWidth(), chart.getHeight());
-  chart.setOption(buildFlowOption(ORDER_GRAPH, { viewport }));
+  // pixelRatio snaps lines and text to device pixels, which matters at 90% or 110% browser zoom.
+  chart.setOption(buildFlowOption(ORDER_GRAPH, { viewport, pixelRatio: chart.getDevicePixelRatio() }));
 }
+
+// Without FlowEditor, follow browser zoom and display changes manually.
+watchDevicePixelRatio(chart, renderChart);
 
 chart.on('click', (params) => {
   const info = (params as { info?: FlowHitInfo }).info;

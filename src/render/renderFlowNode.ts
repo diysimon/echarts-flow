@@ -4,7 +4,7 @@ import { getPortOffset, getShapeDecorations, getShapePath, getShapePolygon, getS
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowHitInfo, FlowNodePayload } from './flowPayload';
 import { isTransparent, toZrColor } from './flowColor';
-import { alignToPixel, snapLineHeight } from './pixelAlign';
+import { alignToPixel, snapLineHeight, snapLineWidth, snapToPixel } from './pixelAlign';
 
 export type ElementOption = NonNullable<CustomSeriesRenderItemReturn>;
 
@@ -35,6 +35,8 @@ interface NodeView {
   height: number;
   isSelected: boolean;
   isHovered: boolean;
+  /** Device pixels per CSS pixel; positions and strokes snap to this grid. */
+  pixelRatio: number;
 }
 
 /** Ring styles mark selection with a halo, so the border keeps its own color. */
@@ -81,7 +83,7 @@ function buildShapeStyle(view: NodeView) {
   return {
     fill: toZrColor(appearance.fill),
     stroke: hasOutline ? toZrColor(calcStrokeColor(view)) : 'transparent',
-    lineWidth: isActive ? appearance.activeLineWidth : appearance.lineWidth,
+    lineWidth: snapLineWidth(isActive ? appearance.activeLineWidth : appearance.lineWidth, view.pixelRatio),
     lineDash: appearance.lineDash ?? undefined,
     opacity: appearance.opacity,
     ...calcShadow(view),
@@ -89,13 +91,13 @@ function buildShapeStyle(view: NodeView) {
 }
 
 function buildShapeElement(view: NodeView): ElementOption {
-  const { node, width, height } = view;
+  const { node, width, height, pixelRatio } = view;
   const info: FlowHitInfo = { role: 'node', nodeId: node.id };
   const style = buildShapeStyle(view);
   const { lineWidth } = style;
   const polygon = getShapePolygon(node.shape, width, height);
   if (polygon) {
-    const points = polygon.map(([x, y]) => [alignToPixel(x, lineWidth), alignToPixel(y, lineWidth)]);
+    const points = polygon.map(([x, y]) => [alignToPixel(x, lineWidth, pixelRatio), alignToPixel(y, lineWidth, pixelRatio)]);
     return { type: 'polygon', name: 'shape', info, shape: { points }, style };
   }
   const pathData = getShapePath(node.shape, width, height);
@@ -110,8 +112,8 @@ function buildShapeElement(view: NodeView): ElementOption {
     name: 'shape',
     info,
     shape: {
-      x: alignToPixel(-width / 2, lineWidth),
-      y: alignToPixel(-height / 2, lineWidth),
+      x: alignToPixel(-width / 2, lineWidth, pixelRatio),
+      y: alignToPixel(-height / 2, lineWidth, pixelRatio),
       width,
       height,
       r: getShapeRadius(node.shape, height, node.appearance.radius * view.scale),
@@ -126,7 +128,7 @@ function buildSelectionRing(view: NodeView): ElementOption | null {
     return null;
   }
   const { node, width, height, theme } = view;
-  const style = { fill: 'none', stroke: theme.selected, lineWidth: RING_LINE_WIDTH, opacity: RING_OPACITY };
+  const style = { fill: 'none', stroke: theme.selected, lineWidth: snapLineWidth(RING_LINE_WIDTH, view.pixelRatio), opacity: RING_OPACITY };
   const base = { name: 'selection-ring', silent: true, style };
   const ringWidth = width + RING_GAP * 2;
   const ringHeight = height + RING_GAP * 2;
@@ -180,7 +182,7 @@ function buildDecorations(view: NodeView): ElementOption[] {
     name: `decoration-${index}`,
     silent: true,
     shape: { pathData },
-    style: { fill: 'none', stroke: toZrColor(calcStrokeColor(view)), lineWidth: appearance.lineWidth, opacity: appearance.opacity },
+    style: { fill: 'none', stroke: toZrColor(calcStrokeColor(view)), lineWidth: snapLineWidth(appearance.lineWidth, view.pixelRatio), opacity: appearance.opacity },
   }));
 }
 
@@ -205,7 +207,7 @@ function buildLabel(view: NodeView): ElementOption | null {
       fontSize: appearance.fontSize * scale,
       fontWeight: appearance.fontWeight,
       fontFamily: theme.fontFamily,
-      lineHeight: snapLineHeight(appearance.lineHeight * scale),
+      lineHeight: snapLineHeight(appearance.lineHeight * scale, view.pixelRatio),
       width: (node.width - theme.text.paddingX) * scale,
       overflow: 'truncate',
       align: 'center',
@@ -223,10 +225,10 @@ function calcStatusDotPosition(view: NodeView): { cx: number; cy: number } {
   if (view.node.shape === 'decision') {
     const edgeMidX = view.width / 4;
     const edgeMidY = -view.height / 4;
-    return { cx: Math.round(edgeMidX * DECISION_DOT_EDGE_RATIO), cy: Math.round(edgeMidY * DECISION_DOT_EDGE_RATIO) };
+    return { cx: snapToPixel(edgeMidX * DECISION_DOT_EDGE_RATIO, view.pixelRatio), cy: snapToPixel(edgeMidY * DECISION_DOT_EDGE_RATIO, view.pixelRatio) };
   }
   const inset = STATUS_DOT_INSET * view.scale;
-  return { cx: Math.round(view.width / 2 - inset), cy: Math.round(-view.height / 2 + inset) };
+  return { cx: snapToPixel(view.width / 2 - inset, view.pixelRatio), cy: snapToPixel(-view.height / 2 + inset, view.pixelRatio) };
 }
 
 function buildStatusDot(view: NodeView): ElementOption | null {
@@ -252,7 +254,7 @@ function buildPort(view: NodeView, side: PortSide): ElementOption {
     type: 'circle',
     name: `port-${side}`,
     info,
-    shape: { cx: Math.round(offset.x), cy: Math.round(offset.y), r: port.radius },
+    shape: { cx: snapToPixel(offset.x, view.pixelRatio), cy: snapToPixel(offset.y, view.pixelRatio), r: port.radius },
     style: { fill: port.fill, stroke: port.stroke, lineWidth: PORT_LINE_WIDTH },
   };
 }
@@ -264,14 +266,16 @@ export function renderFlowNode(params: CustomSeriesRenderItemParams): CustomSeri
     return null;
   }
   const { viewport, theme } = payload;
+  const pixelRatio = payload.pixelRatio ?? 1;
   const view: NodeView = {
     node,
     theme,
     scale: viewport.scale,
-    width: Math.round(node.width * viewport.scale),
-    height: Math.round(node.height * viewport.scale),
+    width: snapToPixel(node.width * viewport.scale, pixelRatio),
+    height: snapToPixel(node.height * viewport.scale, pixelRatio),
     isSelected: payload.selectedIds.includes(node.id),
     isHovered: payload.hoveredId === node.id,
+    pixelRatio,
   };
   const shouldShowPorts = payload.isEditable && view.isHovered;
   const children = [
@@ -288,8 +292,8 @@ export function renderFlowNode(params: CustomSeriesRenderItemParams): CustomSeri
   // so edge endpoints meet node borders on the same pixel.
   return {
     type: 'group',
-    x: Math.round(viewport.x) + Math.round(node.x * viewport.scale),
-    y: Math.round(viewport.y) + Math.round(node.y * viewport.scale),
+    x: snapToPixel(viewport.x, pixelRatio) + snapToPixel(node.x * viewport.scale, pixelRatio),
+    y: snapToPixel(viewport.y, pixelRatio) + snapToPixel(node.y * viewport.scale, pixelRatio),
     emphasisDisabled: true,
     children,
   };

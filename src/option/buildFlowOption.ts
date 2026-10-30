@@ -71,6 +71,12 @@ export interface FlowOptionConfig {
    * of the visible area are drawn, which keeps zoomed-in large graphs fast.
    */
   viewSize?: { width: number; height: number };
+  /**
+   * Device pixels per CSS pixel, usually `chart.getDevicePixelRatio()`. Lines
+   * and text snap to the device pixel grid, which keeps them sharp at
+   * fractional ratios such as 90% or 110% browser zoom. Defaults to 1.
+   */
+  pixelRatio?: number;
 }
 
 export interface FlowOption extends EChartsCoreOption {
@@ -226,10 +232,11 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
   const viewport = config.viewport ?? IDENTITY_VIEWPORT;
   const selection = config.selection ?? EMPTY_SELECTION;
   const { nodes, edges } = cullScene(scene, viewport, config.viewSize);
+  const pixelRatio = config.pixelRatio ?? 1;
 
-  const gridPayload: FlowGridPayload = { viewport, theme };
-  const lanePayload: FlowLanePayload = { lanes: lanes.lanes, title: lanes.title, viewport, theme };
-  const edgePayload: FlowEdgePayload = { edges, viewport, selectedIds: selection.edgeIds, theme };
+  const gridPayload: FlowGridPayload = { viewport, theme, pixelRatio };
+  const lanePayload: FlowLanePayload = { lanes: lanes.lanes, title: lanes.title, viewport, theme, pixelRatio };
+  const edgePayload: FlowEdgePayload = { edges, viewport, selectedIds: selection.edgeIds, theme, pixelRatio };
   const nodePayload: FlowNodePayload = {
     nodes,
     viewport,
@@ -237,10 +244,12 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
     hoveredId: config.hoveredNodeId ?? null,
     isEditable: config.isEditable ?? false,
     theme,
+    pixelRatio,
   };
   const overlayPayload: FlowOverlayPayload = {
     viewport,
     theme,
+    pixelRatio,
     selectionBox: config.selectionBox ?? null,
     guides: config.guides ?? [],
     edgeHandles: buildEdgeHandles(edges, config.handleEdgeId),
