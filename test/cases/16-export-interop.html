@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>16 导出与互通 - echarts-flow</title>
+    <link rel="stylesheet" href="./shared/cases.css" />
+  </head>
+  <body>
+    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
+    <h1 class="case__title">16 导出与互通</h1>
+    <p class="case__desc">
+      <code>editor.exportPng()</code> / <code>exportSvg()</code> 导出整张图（不只是可见区域，不带选中态）；
+      <code>toMermaid</code> / <code>fromMermaid</code> 与 Mermaid flowchart 互转，泳道对应 subgraph；
+      <code>toDrawio</code> / <code>fromDrawio</code> 与 draw.io（diagrams.net）互转，保留坐标、尺寸、泳道、颜色和箭头。
+      在右侧文本框里改 Mermaid 或粘贴 draw.io XML，再点"导入"。
+    </p>
+    <div class="case__toolbar">
+      <span class="case__label">图片</span>
+      <button class="case__button" id="png-button" type="button">下载 PNG</button>
+      <button class="case__button" id="svg-button" type="button">下载 SVG</button>
+      <label><input id="transparent-toggle" type="checkbox" /> 透明背景</label>
+      <span class="case__label">文本格式</span>
+      <select id="format-select">
+        <option value="mermaid">Mermaid</option>
+        <option value="drawio">draw.io</option>
+      </select>
+      <button class="case__button" id="export-button" type="button">导出到文本框</button>
+      <button class="case__button" id="import-button" type="button">从文本框导入</button>
+      <button class="case__button" id="download-button" type="button">下载文件</button>
+      <label class="case__button">打开文件 <input class="case__file" id="file-input" type="file" accept=".drawio,.xml,.mmd,.md,.txt" /></label>
+      <span class="case__stat" id="status"></span>
+    </div>
+    <div class="case__layout">
+      <section class="case__chart" id="chart"></section>
+      <aside class="case__side">
+        <span class="case__label">文本</span>
+        <textarea class="case__textarea" id="text" spellcheck="false"></textarea>
+        <span class="case__label">PNG 预览</span>
+        <img class="case__preview" id="preview" alt="导出的 PNG 预览" />
+      </aside>
+    </div>
+    <script type="module" src="./export-interop.ts"></script>
+  </body>
+</html>

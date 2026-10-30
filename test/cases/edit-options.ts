@@ -4,7 +4,7 @@ import { bindButton, createLogger, getElement, initCaseChart } from './shared/ca
 type BooleanOption = {
   [K in keyof FlowEditOptions]-?: FlowEditOptions[K] extends boolean ? K : never;
 }[keyof FlowEditOptions];
-type NumberOption = 'gridSize' | 'minZoom' | 'maxZoom' | 'wheelZoomSpeed';
+type NumberOption = 'gridSize' | 'minZoom' | 'maxZoom' | 'wheelZoomSpeed' | 'alignThreshold';
 
 const FLAG_LABELS: Record<BooleanOption, string> = {
   isEnabled: '启用编辑（总开关）',
@@ -18,10 +18,14 @@ const FLAG_LABELS: Record<BooleanOption, string> = {
   canChangeLane: '拖入泳道换道',
   canPan: '拖动画布平移',
   canZoom: '滚轮缩放',
+  canBoxSelect: '框选',
+  canCopyPaste: '复制粘贴',
+  canReconnect: '拖连线端点改接',
+  shouldShowAlignGuides: '对齐参考线',
   hasKeyboardShortcuts: '键盘快捷键',
   shouldSnapToGrid: '吸附网格',
 };
-const NUMBER_STEPS: Record<NumberOption, number> = { gridSize: 5, minZoom: 0.1, maxZoom: 0.1, wheelZoomSpeed: 0.0005 };
+const NUMBER_STEPS: Record<NumberOption, number> = { gridSize: 5, minZoom: 0.1, maxZoom: 0.1, wheelZoomSpeed: 0.0005, alignThreshold: 1 };
 const MAX_DECISION_OUTPUTS = 2;
 const PERCENT = 100;
 
@@ -79,6 +83,12 @@ const editor = new FlowEditor(chart, {
 
 const flagInputs = new Map<BooleanOption, HTMLInputElement>();
 const numberInputs = new Map<NumberOption, HTMLInputElement>();
+const blankDragSelect = getElement<HTMLSelectElement>('#blank-drag-select');
+blankDragSelect.addEventListener('change', () => {
+  const blankDragAction = blankDragSelect.value as FlowEditOptions['blankDragAction'];
+  editor.setEditOptions({ blankDragAction });
+  log(`setEditOptions({ blankDragAction: '${blankDragAction}' })`);
+});
 
 function syncControls(): void {
   const options = editor.getEditOptions();
@@ -88,6 +98,7 @@ function syncControls(): void {
   numberInputs.forEach((input, key) => {
     input.value = String(options[key]);
   });
+  blankDragSelect.value = options.blankDragAction;
 }
 
 function buildControls(): void {

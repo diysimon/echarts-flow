@@ -2,6 +2,7 @@ export type {
   ArrowType,
   DraftEdge,
   EdgeAppearance,
+  EdgeEnd,
   EdgeRoute,
   EdgeRouting,
   FlowDirection,
@@ -36,8 +37,14 @@ export { calcLaneLayout, findLaneAt } from './layout/laneLayout';
 export { RouteCache, routeEdges } from './geometry/edgeRouter';
 export type { EdgeRoutingOptions, RoutableEdge } from './geometry/edgeRouter';
 export type { LaneBox, LaneLayout, TitleBox } from './layout/laneLayout';
-export { FLOW_EDGE_SERIES_TYPE, FLOW_GRID_SERIES_TYPE, FLOW_LANE_SERIES_TYPE, FLOW_NODE_SERIES_TYPE } from './render/flowPayload';
-export type { FlowHitInfo } from './render/flowPayload';
+export {
+  FLOW_EDGE_SERIES_TYPE,
+  FLOW_GRID_SERIES_TYPE,
+  FLOW_LANE_SERIES_TYPE,
+  FLOW_NODE_SERIES_TYPE,
+  FLOW_OVERLAY_SERIES_TYPE,
+} from './render/flowPayload';
+export type { AlignGuide, EdgeHandle, FlowHitInfo } from './render/flowPayload';
 export { createFlowTheme } from './theme/flowTheme';
 export type { DeepPartial, FlowBackdropBlob, FlowShapeStyle, FlowTheme, FlowThemeName } from './theme/flowTheme';
 export { classicTheme, lightTheme, macaronsTheme, whiteboardTheme } from './theme/lightThemes';
@@ -50,4 +57,11 @@ export { FlowEditor } from './editor/FlowEditor';
 export type { AddNodeInput, FlowEditorOptions, FlowEditorChart } from './editor/FlowEditor';
 export { DEFAULT_EDIT_OPTIONS } from './editor/editOptions';
 export type { FlowEditOptions } from './editor/editOptions';
+export { copyElements, pasteElements } from './editor/clipboard';
+export type { FlowClipboard } from './editor/clipboard';
 export type { ZoomLimits } from './geometry/viewport';
+export { exportFlowPng, exportFlowSvg } from './export/exportImage';
+export type { FlowImageOptions } from './export/exportImage';
+export { fromMermaid, toMermaid } from './export/mermaid';
+export type { ImportedFlow } from './export/mermaid';
+export { fromDrawio, toDrawio } from './export/drawio';

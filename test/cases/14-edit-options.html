@@ -34,6 +34,13 @@
         <div class="case__options" id="flag-list"></div>
         <span class="case__label">数值</span>
         <div class="case__options" id="number-list"></div>
+        <label>
+          blankDragAction（拖空白处，按住 Shift 切换为另一种）
+          <select id="blank-drag-select">
+            <option value="pan">pan：平移画布</option>
+            <option value="boxSelect">boxSelect：框选</option>
+          </select>
+        </label>
         <span class="case__label">数据规则</span>
         <label><input id="rule-connection" type="checkbox" checked /> validateConnection：不能连向"开始"，判断最多 2 条出边</label>
         <label><input id="rule-delete" type="checkbox" checked /> beforeDelete：删除前确认</label>

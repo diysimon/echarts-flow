@@ -52,4 +52,34 @@ describe('resolveShortcut', () => {
     // Assert
     expect(command).toBeNull();
   });
+
+  it.each([
+    ['a', 'select-all'],
+    ['c', 'copy'],
+    ['x', 'cut'],
+    ['v', 'paste'],
+    ['d', 'duplicate'],
+  ])('should return the clipboard command when Cmd+%s is pressed', (key, expected) => {
+    // Act
+    const command = resolveShortcut(createKey(key, { metaKey: true }));
+
+    // Assert
+    expect(command).toBe(expected);
+  });
+
+  it('should return nudge-left when ArrowLeft is pressed', () => {
+    // Act
+    const command = resolveShortcut(createKey('ArrowLeft'));
+
+    // Assert
+    expect(command).toBe('nudge-left');
+  });
+
+  it('should return null when C is pressed without modifier', () => {
+    // Act
+    const command = resolveShortcut(createKey('c'));
+
+    // Assert
+    expect(command).toBeNull();
+  });
 });

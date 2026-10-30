@@ -1,4 +1,4 @@
-import type { FlowEdge, FlowGraph, FlowNode, FlowSelection } from '../types';
+import type { EdgeEnd, FlowEdge, FlowGraph, FlowNode, FlowSelection } from '../types';
 
 export function createUniqueId(prefix: string, existingIds: Iterable<string>): string {
   const usedIds = new Set(existingIds);
@@ -78,4 +78,34 @@ export function updateEdge(graph: FlowGraph, edgeId: string, patch: Partial<Omit
     ...graph,
     edges: graph.edges.map((edge) => (edge.id === edgeId ? { ...edge, ...patch } : edge)),
   };
+}
+
+/** Shifts the given nodes by a world offset; locked nodes stay put. */
+export function moveNodes(graph: FlowGraph, nodeIds: string[], dx: number, dy: number): FlowGraph {
+  const movedIds = new Set(nodeIds);
+  const isMovable = (node: FlowNode) => movedIds.has(node.id) && !node.isLocked;
+  if (!graph.nodes.some(isMovable)) {
+    return graph;
+  }
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => (isMovable(node) ? { ...node, x: (node.x ?? 0) + dx, y: (node.y ?? 0) + dy } : node)),
+  };
+}
+
+/**
+ * Moves one end of an edge to another node. Returns the graph unchanged when
+ * the result would be a self loop or duplicate a connection.
+ */
+export function reconnectEdge(graph: FlowGraph, edgeId: string, end: EdgeEnd, nodeId: string): FlowGraph {
+  const edge = graph.edges.find((item) => item.id === edgeId);
+  if (!edge || edge[end] === nodeId) {
+    return graph;
+  }
+  const next = { ...edge, [end]: nodeId };
+  const others = { ...graph, edges: graph.edges.filter((item) => item.id !== edgeId) };
+  if (!canConnect(others, next.source, next.target)) {
+    return graph;
+  }
+  return updateEdge(graph, edgeId, { [end]: nodeId });
 }

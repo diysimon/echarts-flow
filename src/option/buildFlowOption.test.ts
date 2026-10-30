@@ -8,9 +8,12 @@ import {
   FLOW_LANE_SERIES_TYPE,
   FLOW_NODE_SERIES_ID,
   FLOW_NODE_SERIES_TYPE,
+  FLOW_OVERLAY_SERIES_ID,
+  FLOW_OVERLAY_SERIES_TYPE,
   type FlowEdgePayload,
   type FlowLanePayload,
   type FlowNodePayload,
+  type FlowOverlayPayload,
 } from '../render/flowPayload';
 import { darkTheme, techBlueTheme } from '../theme/darkThemes';
 import type { FlowGraph } from '../types';
@@ -41,11 +44,12 @@ function getPayloads(option: ReturnType<typeof buildFlowOption>) {
     edge: findSeries(option, FLOW_EDGE_SERIES_ID).itemPayload as unknown as FlowEdgePayload,
     node: findSeries(option, FLOW_NODE_SERIES_ID).itemPayload as unknown as FlowNodePayload,
     lane: findSeries(option, FLOW_LANE_SERIES_ID).itemPayload as unknown as FlowLanePayload,
+    overlay: findSeries(option, FLOW_OVERLAY_SERIES_ID).itemPayload as unknown as FlowOverlayPayload,
   };
 }
 
 describe('buildFlowOption', () => {
-  it('should stack grid, lanes, edges and nodes from bottom to top', () => {
+  it('should stack grid, lanes, edges, nodes and the overlay from bottom to top', () => {
     // Act
     const option = buildFlowOption(createGraph());
 
@@ -55,6 +59,7 @@ describe('buildFlowOption', () => {
       FLOW_LANE_SERIES_TYPE,
       FLOW_EDGE_SERIES_TYPE,
       FLOW_NODE_SERIES_TYPE,
+      FLOW_OVERLAY_SERIES_TYPE,
     ]);
   });
 
@@ -167,6 +172,31 @@ describe('buildFlowOption', () => {
 
     // Assert
     expect(option.backgroundColor).toBe(techBlueTheme.background);
+  });
+
+  it('should put handles on both ends of the handle edge', () => {
+    // Act
+    const option = buildFlowOption(createGraph(), { handleEdgeId: 'e1' });
+
+    // Assert
+    expect(getPayloads(option).overlay.edgeHandles.map((handle) => handle.end)).toEqual(['source', 'target']);
+  });
+
+  it('should show no edge handles when no handle edge is given', () => {
+    // Act
+    const option = buildFlowOption(createGraph());
+
+    // Assert
+    expect(getPayloads(option).overlay.edgeHandles).toEqual([]);
+  });
+
+  it('should end the draft at the node when the draft is reversed', () => {
+    // Act
+    const option = buildFlowOption(createGraph(), { draftEdge: { sourceId: 'b', target: { x: 500, y: 500 }, isReversed: true } });
+
+    // Assert
+    const draft = getPayloads(option).edge.edges.find((edge) => edge.id === DRAFT_EDGE_ID);
+    expect(draft?.points[0]).toEqual({ x: 500, y: 500 });
   });
 });
 

@@ -209,9 +209,13 @@ export interface FlowSelection {
   edgeIds: string[];
 }
 
-/** Temporary edge drawn while the user drags from a port. */
+/** Temporary edge drawn while the user drags from a port or moves an edge end. */
 export interface DraftEdge {
   sourceId: string;
   /** Cursor position in world coordinates. */
   target: Point;
+  /** Draw the arrow at the node instead of the cursor, when dragging an edge's source end. */
+  isReversed?: boolean;
 }
+
+export type EdgeEnd = 'source' | 'target';

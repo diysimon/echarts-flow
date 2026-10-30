@@ -1,5 +1,6 @@
 import type { ECElementEvent, EChartsType, ElementEvent } from 'echarts';
 import type {
+  EdgeEnd,
   FlowDirection,
   FlowEdge,
   FlowGraph,
@@ -16,15 +17,21 @@ import type {
 import { buildFlowOptionFromScene, buildFlowScene, calcFitViewport } from '../option/buildFlowOption';
 import { calcFlowLayout, fillMissingPositions, type FlowLayoutOptions } from '../layout/calcFlowLayout';
 import { findLaneAt, type LaneLayout } from '../layout/laneLayout';
-import { clampScale, panBy, toScreen, toWorld, zoomAt, type ZoomLimits } from '../geometry/viewport';
+import { calcNodesBounds, clampScale, panBy, toScreen, toWorld, zoomAt, type Bounds, type ZoomLimits } from '../geometry/viewport';
 import { RouteCache, type EdgeRoutingOptions } from '../geometry/edgeRouter';
-import { isFlowHitInfo, type FlowHitInfo } from '../render/flowPayload';
+import { isFlowHitInfo, type AlignGuide, type FlowHitInfo } from '../render/flowPayload';
 import { watchDevicePixelRatio } from '../render/pixelRatioSync';
 import type { FlowTheme, FlowThemeName } from '../theme/flowTheme';
 import { resolveFlowTheme } from '../theme/themeRegistry';
+import { toDrawio } from '../export/drawio';
+import { exportFlowPng, exportFlowSvg, type FlowImageOptions } from '../export/exportImage';
+import { toMermaid } from '../export/mermaid';
+import { calcAlignment } from './alignGuides';
+import { calcRectFromPoints, mergeSelections, selectInRect } from './boxSelect';
+import { copyElements, pasteElements, type FlowClipboard } from './clipboard';
 import { FlowHistory } from './flowHistory';
 import { LabelInput } from './LabelInput';
-import { resolveShortcut, type EditorCommand } from './keyboardShortcuts';
+import { isNudgeCommand, resolveShortcut, type EditorCommand } from './keyboardShortcuts';
 import { addLane, removeLane, setNodeLanes, updateLane } from './laneOps';
 import { DEFAULT_EDIT_OPTIONS, isEditAllowed, mergeEditOptions, type FlowEditOptions } from './editOptions';
 import {
@@ -33,6 +40,8 @@ import {
   canConnect,
   collectElementIds,
   createUniqueId,
+  moveNodes,
+  reconnectEdge,
   removeElements,
   setNodePositions,
   snapToGrid,
@@ -66,10 +75,22 @@ export interface AddNodeInput extends Partial<Omit<FlowNode, 'id' | 'shape'>> {
   shape: FlowNodeShape;
 }
 
+type DragNodeInteraction = {
+  type: 'drag-node';
+  startScreen: Point;
+  origins: Map<string, Point>;
+  before: FlowGraph;
+  hasMoved: boolean;
+  guides: AlignGuide[];
+};
+
 type Interaction =
-  | { type: 'drag-node'; startScreen: Point; origins: Map<string, Point>; before: FlowGraph; hasMoved: boolean }
+  | DragNodeInteraction
   | { type: 'pan'; lastScreen: Point }
-  | { type: 'connect'; sourceId: string; cursor: Point };
+  | { type: 'connect'; sourceId: string; cursor: Point }
+  | { type: 'box-select'; start: Point; current: Point; base: FlowSelection }
+  /** `graph` is the graph without the edge being moved, drawn while it is dragged. */
+  | { type: 'reconnect'; edgeId: string; end: EdgeEnd; fixedNodeId: string; cursor: Point; graph: FlowGraph };
 
 /** Pointer travel in pixels before a press on a node becomes a drag. */
 const DRAG_THRESHOLD = 3;
@@ -80,6 +101,17 @@ const MAX_STACK_ATTEMPTS = 20;
 const LANE_INPUT_WIDTH = 140;
 /** Graphs larger than this use simple edge routing while nodes are dragged. */
 const DRAG_SMART_ROUTING_LIMIT = 60;
+/** World distance between a copy and its original; repeated pastes step further. */
+const PASTE_OFFSET = 20;
+/** Shift + arrow moves this many steps at once. */
+const NUDGE_LARGE_FACTOR = 10;
+
+const NUDGE_DIRECTIONS: Record<'nudge-left' | 'nudge-right' | 'nudge-up' | 'nudge-down', Point> = {
+  'nudge-left': { x: -1, y: 0 },
+  'nudge-right': { x: 1, y: 0 },
+  'nudge-up': { x: 0, y: -1 },
+  'nudge-down': { x: 0, y: 1 },
+};
 
 const DEFAULT_LABELS: Record<FlowNodeShape, string> = {
   start: '开始',
@@ -134,6 +166,9 @@ export class FlowEditor {
   private renderedLanes: LaneLayout = { lanes: [], title: null };
   private pendingFrame: number | null = null;
   private stopWatchingPixelRatio: () => void = () => {};
+  private clipboard: FlowClipboard | null = null;
+  /** Pastes since the last copy, so each paste lands one step further away. */
+  private pasteCount = 0;
   private readonly history = new FlowHistory();
   private readonly routeCache = new RouteCache();
   private readonly labelInput: LabelInput;
@@ -277,6 +312,74 @@ export class FlowEditor {
     this.restore(this.history.undo(this.graph));
   }
 
+  /** Selects every node and edge. */
+  selectAll(): void {
+    this.setSelection({ nodeIds: this.graph.nodes.map((node) => node.id), edgeIds: this.graph.edges.map((edge) => edge.id) });
+  }
+
+  /** Copies the selected nodes and the edges between them. Returns false when no node is selected. */
+  copySelection(): boolean {
+    const clipboard = copyElements(this.graph, this.selection);
+    if (!clipboard) {
+      return false;
+    }
+    this.clipboard = clipboard;
+    this.pasteCount = 0;
+    return true;
+  }
+
+  /** Copies, then deletes the selection; locked elements and `beforeDelete` apply as in `deleteSelection()`. */
+  cutSelection(): void {
+    if (this.copySelection()) {
+      this.deleteSelection();
+    }
+  }
+
+  /** Pastes the last copy, offset from the original, and selects the copies. */
+  paste(): void {
+    if (!this.clipboard) {
+      return;
+    }
+    this.pasteCount++;
+    this.insertCopies(this.clipboard, PASTE_OFFSET * this.pasteCount);
+  }
+
+  /** Copies the selected nodes in place, offset by one step, without touching the clipboard. */
+  duplicateSelection(): void {
+    const copies = copyElements(this.graph, this.selection);
+    if (copies) {
+      this.insertCopies(copies, PASTE_OFFSET);
+    }
+  }
+
+  /** Moves the selected, unlocked nodes by a world offset as one undoable step. */
+  moveSelection(dx: number, dy: number): void {
+    this.commit(moveNodes(this.graph, this.selection.nodeIds, dx, dy));
+  }
+
+  /**
+   * Moves one end of an edge to another node. Returns false when the edge is
+   * locked, the result would be a self loop or duplicate, or
+   * `validateConnection` rejects it.
+   */
+  reconnectEdge(edgeId: string, end: EdgeEnd, nodeId: string): boolean {
+    const edge = this.graph.edges.find((item) => item.id === edgeId);
+    if (!edge || edge.isLocked) {
+      return false;
+    }
+    const next = reconnectEdge(this.graph, edgeId, end, nodeId);
+    if (next === this.graph) {
+      return false;
+    }
+    const source = end === 'source' ? nodeId : edge.source;
+    const target = end === 'target' ? nodeId : edge.target;
+    if (!(this.editOptions.validateConnection?.(source, target, this.graph) ?? true)) {
+      return false;
+    }
+    this.commit(next);
+    return true;
+  }
+
   redo(): void {
     this.restore(this.history.redo(this.graph));
   }
@@ -363,6 +466,30 @@ export class FlowEditor {
     this.renderNow(this.interaction === null);
   }
 
+  /** The whole graph as an SVG document, drawn with the editor's theme and without selection. */
+  exportSvg(options: Omit<FlowImageOptions, 'direction' | 'theme' | 'layout' | 'routing'> = {}): string {
+    return exportFlowSvg(this.graph, { ...this.getExportConfig(), ...options });
+  }
+
+  /** The whole graph as a PNG data URL, drawn with the editor's theme and without selection. */
+  exportPng(options: Omit<FlowImageOptions, 'direction' | 'theme' | 'layout' | 'routing'> = {}): string {
+    return exportFlowPng(this.graph, { ...this.getExportConfig(), ...options });
+  }
+
+  /** The graph as a Mermaid flowchart; see `toMermaid` for what carries over. */
+  exportMermaid(): string {
+    return toMermaid(this.graph, { direction: this.direction });
+  }
+
+  /** The graph as an uncompressed draw.io file with current positions and lanes. */
+  exportDrawio(): string {
+    return toDrawio(this.graph, { direction: this.direction, theme: this.theme, layout: this.layout });
+  }
+
+  private getExportConfig() {
+    return { direction: this.direction, theme: this.theme, layout: this.layout, routing: this.options.routing };
+  }
+
   dispose(): void {
     this.cancelScheduledRender();
     this.cancelInteraction();
@@ -372,14 +499,13 @@ export class FlowEditor {
 
   private renderNow(isAnimated: boolean): void {
     this.cancelScheduledRender();
+    const interaction = this.interaction;
     const config = {
       direction: this.direction,
       viewport: this.viewport,
       selection: this.selection,
       hoveredNodeId: this.hoveredNodeId,
-      draftEdge: this.interaction?.type === 'connect'
-        ? { sourceId: this.interaction.sourceId, target: this.interaction.cursor }
-        : null,
+      draftEdge: this.getDraftEdge(),
       // Ports only appear when the user may draw connections.
       isEditable: isEditAllowed(this.editOptions, 'canConnect'),
       animation: isAnimated,
@@ -387,12 +513,38 @@ export class FlowEditor {
       layout: this.layout,
       routing: this.getRoutingOptions(),
       routeCache: this.routeCache,
+      selectionBox: interaction?.type === 'box-select' ? calcRectFromPoints(interaction.start, interaction.current) : null,
+      guides: interaction?.type === 'drag-node' ? interaction.guides : [],
+      handleEdgeId: this.getHandleEdgeId(),
     };
-    const scene = buildFlowScene(this.graph, config);
+    // The edge being reconnected is hidden and drawn as a draft that follows the pointer.
+    const graph = interaction?.type === 'reconnect' ? interaction.graph : this.graph;
+    const scene = buildFlowScene(graph, config);
     this.renderedNodes = scene.nodes;
     this.renderedEdges = scene.edges;
     this.renderedLanes = scene.lanes;
     this.chart.setOption(buildFlowOptionFromScene(scene, config));
+  }
+
+  private getDraftEdge() {
+    const interaction = this.interaction;
+    if (interaction?.type === 'connect') {
+      return { sourceId: interaction.sourceId, target: interaction.cursor };
+    }
+    if (interaction?.type === 'reconnect') {
+      return { sourceId: interaction.fixedNodeId, target: interaction.cursor, isReversed: interaction.end === 'source' };
+    }
+    return null;
+  }
+
+  /** A single selected, unlocked edge shows handles on its ends for reconnecting. */
+  private getHandleEdgeId(): string | null {
+    const { edgeIds, nodeIds } = this.selection;
+    if (!isEditAllowed(this.editOptions, 'canReconnect') || edgeIds.length !== 1 || nodeIds.length > 0 || this.interaction) {
+      return null;
+    }
+    const edge = this.graph.edges.find((item) => item.id === edgeIds[0]);
+    return edge && !edge.isLocked ? edge.id : null;
   }
 
   /**
@@ -416,6 +568,12 @@ export class FlowEditor {
   /** Positions missing nodes and sizes missing lanes with the current theme's metrics. */
   private fillLayout(graph: FlowGraph): FlowGraph {
     return fillMissingPositions(graph, this.getLayoutOptions());
+  }
+
+  private insertCopies(clipboard: FlowClipboard, offset: number): void {
+    const result = pasteElements(this.graph, clipboard, { x: offset, y: offset });
+    this.commit(result.graph);
+    this.setSelection(result.selection);
   }
 
   private commit(next: FlowGraph): void {
@@ -593,6 +751,10 @@ export class FlowEditor {
       this.render();
       return;
     }
+    if (info.role === 'edge-end') {
+      this.startReconnect(info.edgeId, info.end, screen);
+      return;
+    }
     if (info.role === 'edge') {
       if (this.editOptions.canSelect) {
         const edgeIds = isAdditive ? toggleId(this.selection.edgeIds, info.edgeId) : [info.edgeId];
@@ -602,17 +764,46 @@ export class FlowEditor {
     }
     // Lane headers and the title behave like empty canvas.
     if (info.role === 'lane' || info.role === 'title') {
-      this.pressBlank(screen, isAdditive);
+      this.pressBlank(screen, nativeEvent.shiftKey);
       return;
     }
     this.pressNode(info.nodeId, screen, isAdditive);
   };
 
-  private pressBlank(screen: Point, isAdditive: boolean): void {
-    if (!isAdditive && this.editOptions.canSelect) {
+  private startReconnect(edgeId: string, end: EdgeEnd, screen: Point): void {
+    const edge = this.graph.edges.find((item) => item.id === edgeId);
+    if (!edge || !isEditAllowed(this.editOptions, 'canReconnect')) {
+      return;
+    }
+    this.startInteraction({
+      type: 'reconnect',
+      edgeId,
+      end,
+      fixedNodeId: end === 'source' ? edge.target : edge.source,
+      cursor: toWorld(this.viewport, screen),
+      graph: { ...this.graph, edges: this.graph.edges.filter((item) => item.id !== edgeId) },
+    });
+    this.render();
+  }
+
+  /**
+   * Dragging empty canvas pans or draws a selection box, per `blankDragAction`;
+   * Shift switches to the other one. A Shift box adds to the selection.
+   */
+  private pressBlank(screen: Point, isShift: boolean): void {
+    const { canSelect, canMultiSelect, canBoxSelect, canPan, blankDragAction } = this.editOptions;
+    const isKeepingSelection = isShift && canMultiSelect;
+    if (!isKeepingSelection && canSelect) {
       this.setSelection({ nodeIds: [], edgeIds: [] });
     }
-    if (this.editOptions.canPan) {
+    const wantsBoxSelect = (blankDragAction === 'boxSelect') !== isShift;
+    if (wantsBoxSelect && canBoxSelect && canSelect) {
+      const start = toWorld(this.viewport, screen);
+      const base = isKeepingSelection ? this.selection : { nodeIds: [], edgeIds: [] };
+      this.startInteraction({ type: 'box-select', start, current: start, base });
+      return;
+    }
+    if (canPan) {
       this.startInteraction({ type: 'pan', lastScreen: screen });
     }
   }
@@ -640,7 +831,7 @@ export class FlowEditor {
       .filter((node) => dragIds.has(node.id) && !node.isLocked)
       .forEach((node) => origins.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 }));
     if (origins.size > 0) {
-      this.startInteraction({ type: 'drag-node', startScreen: screen, origins, before: this.graph, hasMoved: false });
+      this.startInteraction({ type: 'drag-node', startScreen: screen, origins, before: this.graph, hasMoved: false, guides: [] });
     }
   }
 
@@ -651,7 +842,7 @@ export class FlowEditor {
       return;
     }
     this.focusContainer();
-    this.pressBlank(this.getScreenPoint(nativeEvent), this.editOptions.canMultiSelect && nativeEvent.shiftKey);
+    this.pressBlank(this.getScreenPoint(nativeEvent), nativeEvent.shiftKey);
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -663,28 +854,62 @@ export class FlowEditor {
     if (interaction.type === 'pan') {
       this.viewport = panBy(this.viewport, screen.x - interaction.lastScreen.x, screen.y - interaction.lastScreen.y);
       interaction.lastScreen = screen;
-    } else if (interaction.type === 'connect') {
+    } else if (interaction.type === 'connect' || interaction.type === 'reconnect') {
       interaction.cursor = toWorld(this.viewport, screen);
+    } else if (interaction.type === 'box-select') {
+      interaction.current = toWorld(this.viewport, screen);
+      const rect = calcRectFromPoints(interaction.start, interaction.current);
+      this.setSelectionSilently(mergeSelections(interaction.base, selectInRect(this.renderedNodes, this.graph.edges, rect)));
     } else {
       this.dragNodes(interaction, screen);
     }
     this.scheduleRender();
   };
 
-  private dragNodes(interaction: Extract<Interaction, { type: 'drag-node' }>, screen: Point): void {
+  private dragNodes(interaction: DragNodeInteraction, screen: Point): void {
     const dx = screen.x - interaction.startScreen.x;
     const dy = screen.y - interaction.startScreen.y;
     if (!interaction.hasMoved && Math.hypot(dx, dy) < DRAG_THRESHOLD) {
       return;
     }
     interaction.hasMoved = true;
+    const worldDx = dx / this.viewport.scale;
+    const worldDy = dy / this.viewport.scale;
+    const alignment = this.calcDragAlignment(interaction, worldDx, worldDy);
+    interaction.guides = alignment?.guides ?? [];
     const positions = new Map<string, Point>();
     interaction.origins.forEach((origin, nodeId) => {
-      const moved = { x: origin.x + dx / this.viewport.scale, y: origin.y + dy / this.viewport.scale };
-      positions.set(nodeId, this.snapPoint(moved));
+      const snapped = this.snapPoint({ x: origin.x + worldDx, y: origin.y + worldDy });
+      // An alignment snap wins over the grid on its axis.
+      positions.set(nodeId, {
+        x: alignment?.dx != null ? origin.x + worldDx + alignment.dx : snapped.x,
+        y: alignment?.dy != null ? origin.y + worldDy + alignment.dy : snapped.y,
+      });
     });
     // Positions update live; history is recorded once on release.
     this.graph = setNodePositions(this.graph, positions);
+  }
+
+  /** Lines up the box around the dragged nodes with the nodes that stay put. */
+  private calcDragAlignment(interaction: DragNodeInteraction, worldDx: number, worldDy: number) {
+    if (!this.editOptions.shouldShowAlignGuides) {
+      return null;
+    }
+    const moving: ResolvedNode[] = [];
+    const others: Bounds[] = [];
+    this.renderedNodes.forEach((node) => {
+      const origin = interaction.origins.get(node.id);
+      if (origin) {
+        moving.push({ ...node, x: origin.x + worldDx, y: origin.y + worldDy });
+      } else {
+        others.push(calcNodesBounds([node]) as Bounds);
+      }
+    });
+    const movingBounds = calcNodesBounds(moving);
+    if (!movingBounds || others.length === 0) {
+      return null;
+    }
+    return calcAlignment(movingBounds, others, this.editOptions.alignThreshold / this.viewport.scale);
   }
 
   private readonly handlePointerUp = (): void => {
@@ -699,6 +924,9 @@ export class FlowEditor {
     }
     if (interaction?.type === 'connect' && this.hoveredNodeId) {
       this.connect(interaction.sourceId, this.hoveredNodeId);
+    }
+    if (interaction?.type === 'reconnect' && this.hoveredNodeId) {
+      this.reconnectEdge(interaction.edgeId, interaction.end, this.hoveredNodeId);
     }
     this.render();
   };
@@ -745,7 +973,7 @@ export class FlowEditor {
     if (!isEditAllowed(this.editOptions, 'canEditLabels') || !info) {
       return;
     }
-    if (info.role === 'edge') {
+    if (info.role === 'edge' || info.role === 'edge-end') {
       const isLocked = this.graph.edges.some((edge) => edge.id === info.edgeId && edge.isLocked);
       if (!isLocked) {
         this.editEdgeLabel(info.edgeId);
@@ -852,10 +1080,10 @@ export class FlowEditor {
       return;
     }
     event.preventDefault();
-    this.runCommand(command);
+    this.runCommand(command, event.shiftKey);
   };
 
-  private runCommand(command: EditorCommand): void {
+  private runCommand(command: EditorCommand, isShift: boolean): void {
     if (command === 'cancel') {
       this.cancelInteraction();
       this.setSelectionSilently({ nodeIds: [], edgeIds: [] });
@@ -868,6 +1096,20 @@ export class FlowEditor {
       }
       return;
     }
+    if (isNudgeCommand(command)) {
+      this.nudgeSelection(NUDGE_DIRECTIONS[command], isShift);
+      return;
+    }
+    if (command === 'select-all') {
+      if (this.editOptions.canSelect && this.editOptions.canMultiSelect) {
+        this.selectAll();
+      }
+      return;
+    }
+    if (command === 'copy' || command === 'cut' || command === 'paste' || command === 'duplicate') {
+      this.runClipboardCommand(command);
+      return;
+    }
     if (!isEditAllowed(this.editOptions, 'canUndo')) {
       return;
     }
@@ -875,6 +1117,38 @@ export class FlowEditor {
       this.undo();
     } else {
       this.redo();
+    }
+  }
+
+  /** One arrow press moves one grid step, or one pixel with snapping off; Shift moves ten. */
+  private nudgeSelection(direction: Point, isLarge: boolean): void {
+    if (!isEditAllowed(this.editOptions, 'canMoveNodes')) {
+      return;
+    }
+    const { shouldSnapToGrid, gridSize } = this.editOptions;
+    const step = (shouldSnapToGrid ? gridSize : 1) * (isLarge ? NUDGE_LARGE_FACTOR : 1);
+    this.moveSelection(direction.x * step, direction.y * step);
+  }
+
+  /** Copying only reads the graph, so it works on a read-only canvas too. */
+  private runClipboardCommand(command: 'copy' | 'cut' | 'paste' | 'duplicate'): void {
+    if (command === 'copy') {
+      if (this.editOptions.canCopyPaste) {
+        this.copySelection();
+      }
+      return;
+    }
+    if (!isEditAllowed(this.editOptions, 'canCopyPaste')) {
+      return;
+    }
+    if (command === 'cut') {
+      if (isEditAllowed(this.editOptions, 'canDelete')) {
+        this.cutSelection();
+      }
+    } else if (command === 'paste') {
+      this.paste();
+    } else {
+      this.duplicateSelection();
     }
   }
 }

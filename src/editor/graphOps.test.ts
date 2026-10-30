@@ -1,4 +1,16 @@
-import { addEdge, addNode, canConnect, createUniqueId, removeElements, setNodePositions, snapToGrid, updateEdge, updateNode } from './graphOps';
+import {
+  addEdge,
+  addNode,
+  canConnect,
+  createUniqueId,
+  moveNodes,
+  reconnectEdge,
+  removeElements,
+  setNodePositions,
+  snapToGrid,
+  updateEdge,
+  updateNode,
+} from './graphOps';
 import type { FlowGraph } from '../types';
 
 function createGraph(): FlowGraph {
@@ -161,5 +173,66 @@ describe('updateEdge', () => {
 
     // Assert
     expect(result.edges[1].label).toBe('是');
+  });
+});
+
+describe('moveNodes', () => {
+  it('should shift the listed nodes by the offset', () => {
+    // Act
+    const result = moveNodes(createGraph(), ['b'], 10, -5);
+
+    // Assert
+    expect([result.nodes[1].x, result.nodes[1].y]).toEqual([10, 95]);
+  });
+
+  it('should keep locked nodes in place', () => {
+    // Arrange
+    const graph = updateNode(createGraph(), 'b', { isLocked: true });
+
+    // Act
+    const result = moveNodes(graph, ['b'], 10, 10);
+
+    // Assert
+    expect(result).toBe(graph);
+  });
+});
+
+describe('reconnectEdge', () => {
+  it('should move the target end to the new node', () => {
+    // Act
+    const result = reconnectEdge(createGraph(), 'e1', 'target', 'c');
+
+    // Assert
+    expect(result.edges[0].target).toBe('c');
+  });
+
+  it('should move the source end to the new node', () => {
+    // Act
+    const result = reconnectEdge(createGraph(), 'e2', 'source', 'a');
+
+    // Assert
+    expect(result.edges[1].source).toBe('a');
+  });
+
+  it('should reject a reconnection that makes a self loop', () => {
+    // Arrange
+    const graph = createGraph();
+
+    // Act
+    const result = reconnectEdge(graph, 'e1', 'target', 'a');
+
+    // Assert
+    expect(result).toBe(graph);
+  });
+
+  it('should reject a reconnection that duplicates an existing edge', () => {
+    // Arrange: e3 already runs a → c
+    const graph = addEdge(createGraph(), { id: 'e3', source: 'a', target: 'c' });
+
+    // Act
+    const result = reconnectEdge(graph, 'e2', 'source', 'a');
+
+    // Assert
+    expect(result).toBe(graph);
   });
 });

@@ -442,4 +442,172 @@ describe('FlowEditor', () => {
       expect([node?.x, node?.y]).toEqual([150, 250]);
     });
   });
+
+  describe('clipboard and selection shortcuts', () => {
+    it('should select every node and edge when Cmd+A is pressed', () => {
+      // Arrange
+      const { editor, container } = setup();
+
+      // Act
+      pressKey(container, 'a', { metaKey: true });
+
+      // Assert
+      expect(editor.getSelection()).toEqual({ nodeIds: ['a', 'b'], edgeIds: ['e1'] });
+    });
+
+    it('should paste copies of the copied nodes and their edge', () => {
+      // Arrange
+      const { editor, container } = setup();
+      editor.setSelection({ nodeIds: ['a', 'b'], edgeIds: [] });
+      pressKey(container, 'c', { metaKey: true });
+
+      // Act
+      pressKey(container, 'v', { metaKey: true });
+
+      // Assert
+      expect([editor.getGraph().nodes.length, editor.getGraph().edges.length]).toEqual([4, 2]);
+    });
+
+    it('should select the pasted copies when pasting', () => {
+      // Arrange
+      const { editor } = setup();
+      editor.setSelection({ nodeIds: ['a'], edgeIds: [] });
+      editor.copySelection();
+
+      // Act
+      editor.paste();
+
+      // Assert
+      expect(editor.getSelection().nodeIds).not.toContain('a');
+    });
+
+    it('should place each paste one step further from the original', () => {
+      // Arrange
+      const { editor } = setup();
+      editor.setSelection({ nodeIds: ['a'], edgeIds: [] });
+      editor.copySelection();
+      editor.paste();
+
+      // Act
+      editor.paste();
+
+      // Assert
+      const secondCopy = editor.getGraph().nodes[editor.getGraph().nodes.length - 1];
+      expect([secondCopy.x, secondCopy.y]).toEqual([40, 40]);
+    });
+
+    it('should remove the nodes when cutting', () => {
+      // Arrange
+      const { editor, container } = setup();
+      editor.setSelection({ nodeIds: ['a'], edgeIds: [] });
+
+      // Act
+      pressKey(container, 'x', { ctrlKey: true });
+
+      // Assert
+      expect(editor.getGraph().nodes.map((node) => node.id)).toEqual(['b']);
+    });
+
+    it('should not paste when editing is turned off', () => {
+      // Arrange
+      const { editor, container } = setup();
+      editor.setSelection({ nodeIds: ['a'], edgeIds: [] });
+      editor.copySelection();
+      editor.setEditOptions({ isEnabled: false });
+
+      // Act
+      pressKey(container, 'v', { metaKey: true });
+
+      // Assert
+      expect(editor.getGraph().nodes).toHaveLength(2);
+    });
+
+    it('should duplicate the selection with one step of offset when Cmd+D is pressed', () => {
+      // Arrange
+      const { editor, container } = setup();
+      editor.setSelection({ nodeIds: ['b'], edgeIds: [] });
+
+      // Act
+      pressKey(container, 'd', { metaKey: true });
+
+      // Assert
+      const copy = editor.getGraph().nodes[2];
+      expect([copy.x, copy.y]).toEqual([20, 140]);
+    });
+  });
+
+  describe('nudging and reconnecting', () => {
+    it('should move the selection one grid step when an arrow key is pressed', () => {
+      // Arrange
+      const { editor, container } = setup();
+      editor.setSelection({ nodeIds: ['b'], edgeIds: [] });
+
+      // Act
+      pressKey(container, 'ArrowRight');
+
+      // Assert
+      expect(editor.getGraph().nodes[1].x).toBe(10);
+    });
+
+    it('should move ten steps when Shift and an arrow key are pressed', () => {
+      // Arrange
+      const { editor, container } = setup();
+      editor.setSelection({ nodeIds: ['b'], edgeIds: [] });
+
+      // Act
+      pressKey(container, 'ArrowUp', { shiftKey: true });
+
+      // Assert
+      expect(editor.getGraph().nodes[1].y).toBe(20);
+    });
+
+    it('should not nudge when moving nodes is turned off', () => {
+      // Arrange
+      const { editor, container } = setup({ edit: { canMoveNodes: false } });
+      editor.setSelection({ nodeIds: ['b'], edgeIds: [] });
+
+      // Act
+      pressKey(container, 'ArrowRight');
+
+      // Assert
+      expect(editor.getGraph().nodes[1].x).toBe(0);
+    });
+
+    it('should move the edge end when reconnecting to another node', () => {
+      // Arrange
+      const { editor } = setup();
+      const id = editor.addNode({ shape: 'process', x: 200, y: 120 });
+
+      // Act
+      editor.reconnectEdge('e1', 'target', id);
+
+      // Assert
+      expect(editor.getGraph().edges[0].target).toBe(id);
+    });
+
+    it('should refuse to reconnect when validateConnection rejects it', () => {
+      // Arrange
+      const { editor } = setup({ edit: { validateConnection: () => false } });
+      const id = editor.addNode({ shape: 'process', x: 200, y: 120 });
+
+      // Act
+      const isReconnected = editor.reconnectEdge('e1', 'target', id);
+
+      // Assert
+      expect(isReconnected).toBe(false);
+    });
+
+    it('should refuse to reconnect a locked edge', () => {
+      // Arrange
+      const { editor } = setup();
+      editor.updateEdge('e1', { isLocked: true });
+      const id = editor.addNode({ shape: 'process', x: 200, y: 120 });
+
+      // Act
+      const isReconnected = editor.reconnectEdge('e1', 'source', id);
+
+      // Assert
+      expect(isReconnected).toBe(false);
+    });
+  });
 });

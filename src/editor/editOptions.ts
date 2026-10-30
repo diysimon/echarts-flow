@@ -27,6 +27,18 @@ export interface FlowEditOptions {
   canPan: boolean;
   /** The mouse wheel zooms; when false the wheel scrolls the page as usual. */
   canZoom: boolean;
+  /** Drag a box on empty canvas to select the nodes it touches. */
+  canBoxSelect: boolean;
+  /** What dragging empty canvas does; holding Shift does the other one. */
+  blankDragAction: 'pan' | 'boxSelect';
+  /** Cmd/Ctrl + C, X, V and D copy, cut, paste and duplicate the selected nodes. */
+  canCopyPaste: boolean;
+  /** Drag the handle on either end of a selected edge onto another node. */
+  canReconnect: boolean;
+  /** While dragging, snap to and show lines where nodes' edges or centers line up. */
+  shouldShowAlignGuides: boolean;
+  /** Screen pixels within which a dragged node snaps to an alignment line. */
+  alignThreshold: number;
   hasKeyboardShortcuts: boolean;
   shouldSnapToGrid: boolean;
   gridSize: number;
@@ -52,6 +64,12 @@ export const DEFAULT_EDIT_OPTIONS: FlowEditOptions = {
   canChangeLane: true,
   canPan: true,
   canZoom: true,
+  canBoxSelect: true,
+  blankDragAction: 'pan',
+  canCopyPaste: true,
+  canReconnect: true,
+  shouldShowAlignGuides: true,
+  alignThreshold: 6,
   hasKeyboardShortcuts: true,
   shouldSnapToGrid: true,
   gridSize: 10,
@@ -69,6 +87,7 @@ function sanitize(options: FlowEditOptions): FlowEditOptions {
     minZoom,
     maxZoom: Math.max(options.maxZoom, minZoom),
     gridSize: Math.max(options.gridSize, 1),
+    alignThreshold: Math.max(options.alignThreshold, 0),
   };
 }
 
@@ -78,7 +97,7 @@ export function mergeEditOptions(base: FlowEditOptions, patch: Partial<FlowEditO
 }
 
 /** Flags that only matter while editing is enabled. */
-type EditAction = 'canMoveNodes' | 'canConnect' | 'canEditLabels' | 'canDelete' | 'canUndo' | 'canChangeLane';
+type EditAction = 'canMoveNodes' | 'canConnect' | 'canEditLabels' | 'canDelete' | 'canUndo' | 'canChangeLane' | 'canCopyPaste' | 'canReconnect';
 
 /** An editing action is allowed only when the master switch and its own flag are both on. */
 export function isEditAllowed(options: FlowEditOptions, action: EditAction): boolean {

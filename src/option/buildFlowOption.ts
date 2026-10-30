@@ -5,7 +5,7 @@ import { routeEdges, type EdgeRoutingOptions, type RoutableEdge, type RouteCache
 import { resolveNode } from '../geometry/nodeShape';
 import { calcNodesBounds, calcRectsBounds, fitBounds, IDENTITY_VIEWPORT, mergeBounds, type ZoomLimits } from '../geometry/viewport';
 import { fillMissingPositions, type FlowLayoutOptions } from '../layout/calcFlowLayout';
-import { calcLaneLayout, getNodeLaneId, type LaneLayout } from '../layout/laneLayout';
+import { calcLaneLayout, getNodeLaneId, type LaneLayout, type Rect } from '../layout/laneLayout';
 import { resolveEdgeAppearance } from '../style/resolveAppearance';
 import type { FlowTheme, FlowThemeName } from '../theme/flowTheme';
 import { resolveFlowTheme } from '../theme/themeRegistry';
@@ -20,10 +20,15 @@ import {
   FLOW_LANE_SERIES_TYPE,
   FLOW_NODE_SERIES_ID,
   FLOW_NODE_SERIES_TYPE,
+  FLOW_OVERLAY_SERIES_ID,
+  FLOW_OVERLAY_SERIES_TYPE,
+  type AlignGuide,
+  type EdgeHandle,
   type FlowEdgePayload,
   type FlowGridPayload,
   type FlowLanePayload,
   type FlowNodePayload,
+  type FlowOverlayPayload,
   type RenderedEdge,
 } from '../render/flowPayload';
 
@@ -45,6 +50,12 @@ export interface FlowOptionConfig {
   routing?: EdgeRoutingOptions;
   /** Reuses routes while the graph object is unchanged; see `RouteCache`. */
   routeCache?: RouteCache;
+  /** Box-selection rectangle in world coordinates, drawn while the user drags it. */
+  selectionBox?: Rect | null;
+  /** Alignment guides shown while nodes are dragged. */
+  guides?: AlignGuide[];
+  /** Edge whose two ends get draggable handles for reconnecting. */
+  handleEdgeId?: string | null;
 }
 
 export interface FlowOption extends EChartsCoreOption {
@@ -63,7 +74,19 @@ const GRID_SERIES_Z = 0;
 const LANE_SERIES_Z = 1;
 const EDGE_SERIES_Z = 2;
 const NODE_SERIES_Z = 3;
+const OVERLAY_SERIES_Z = 4;
 const EMPTY_SELECTION: FlowSelection = { nodeIds: [], edgeIds: [] };
+
+function buildEdgeHandles(edges: RenderedEdge[], edgeId: string | null | undefined): EdgeHandle[] {
+  const edge = edgeId ? edges.find((item) => item.id === edgeId && !item.isDraft) : undefined;
+  if (!edge || edge.points.length < 2) {
+    return [];
+  }
+  return [
+    { edgeId: edge.id, end: 'source', point: edge.points[0] },
+    { edgeId: edge.id, end: 'target', point: edge.points[edge.points.length - 1] },
+  ];
+}
 
 /** Fills missing positions, then resolves size and appearance so every node can be drawn. */
 export function resolveNodes(
@@ -115,7 +138,9 @@ function buildRenderedEdges(
 
   const draftSource = config.draftEdge ? nodeMap.get(config.draftEdge.sourceId) : undefined;
   if (config.draftEdge && draftSource) {
-    const points = calcDraftRoute(draftSource, config.draftEdge.target);
+    const route = calcDraftRoute(draftSource, config.draftEdge.target);
+    // A dragged source end keeps the arrow on the fixed target node.
+    const points = config.draftEdge.isReversed ? [...route].reverse() : route;
     const draft = { id: DRAFT_EDGE_ID, source: draftSource.id, target: '' };
     edges.push({
       ...draft,
@@ -178,6 +203,13 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
     isEditable: config.isEditable ?? false,
     theme,
   };
+  const overlayPayload: FlowOverlayPayload = {
+    viewport,
+    theme,
+    selectionBox: config.selectionBox ?? null,
+    guides: config.guides ?? [],
+    edgeHandles: buildEdgeHandles(edges, config.handleEdgeId),
+  };
   const laneItems = [...lanes.lanes.map((lane) => lane.id), ...(lanes.title ? ['__title__'] : [])];
 
   // Registered custom series are referenced by name; the typings only know functions.
@@ -213,6 +245,7 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
         nodePayload,
         nodes.map((node) => ({ id: node.id, name: node.label, value: [node.x, node.y] })),
       ),
+      buildSeries(FLOW_OVERLAY_SERIES_ID, FLOW_OVERLAY_SERIES_TYPE, OVERLAY_SERIES_Z, overlayPayload, [{ id: 'overlay', value: [0] }]),
     ],
   };
 }

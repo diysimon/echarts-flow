@@ -12,7 +12,7 @@ export default defineConfig({
     rollupOptions: {
       external: ['echarts', /^echarts\//, '@dagrejs/dagre'],
       output: {
-        globals: { echarts: 'echarts', '@dagrejs/dagre': 'dagre' },
+        globals: { echarts: 'echarts', 'echarts/core': 'echarts', '@dagrejs/dagre': 'dagre' },
       },
     },
   },

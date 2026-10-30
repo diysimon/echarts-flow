@@ -1,4 +1,17 @@
-export type EditorCommand = 'delete' | 'undo' | 'redo' | 'cancel';
+export type EditorCommand =
+  | 'delete'
+  | 'undo'
+  | 'redo'
+  | 'cancel'
+  | 'select-all'
+  | 'copy'
+  | 'cut'
+  | 'paste'
+  | 'duplicate'
+  | 'nudge-left'
+  | 'nudge-right'
+  | 'nudge-up'
+  | 'nudge-down';
 
 interface KeyEventLike {
   key: string;
@@ -6,6 +19,22 @@ interface KeyEventLike {
   ctrlKey: boolean;
   shiftKey: boolean;
 }
+
+const MODIFIER_COMMANDS: Record<string, EditorCommand> = {
+  a: 'select-all',
+  c: 'copy',
+  x: 'cut',
+  v: 'paste',
+  d: 'duplicate',
+  y: 'redo',
+};
+
+const ARROW_COMMANDS: Record<string, EditorCommand> = {
+  arrowleft: 'nudge-left',
+  arrowright: 'nudge-right',
+  arrowup: 'nudge-up',
+  arrowdown: 'nudge-down',
+};
 
 /** Maps a key event to an editor command; Cmd on macOS and Ctrl elsewhere are equivalent. */
 export function resolveShortcut(event: KeyEventLike): EditorCommand | null {
@@ -20,8 +49,12 @@ export function resolveShortcut(event: KeyEventLike): EditorCommand | null {
   if (hasModifier && key === 'z') {
     return event.shiftKey ? 'redo' : 'undo';
   }
-  if (hasModifier && key === 'y') {
-    return 'redo';
+  if (hasModifier) {
+    return MODIFIER_COMMANDS[key] ?? null;
   }
-  return null;
+  return ARROW_COMMANDS[key] ?? null;
+}
+
+export function isNudgeCommand(command: EditorCommand): command is 'nudge-left' | 'nudge-right' | 'nudge-up' | 'nudge-down' {
+  return command.startsWith('nudge-');
 }
