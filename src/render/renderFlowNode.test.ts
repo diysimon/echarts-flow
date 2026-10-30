@@ -5,6 +5,7 @@ import { resolveNode } from '../geometry/nodeShape';
 import { darkTheme } from '../theme/darkThemes';
 import { lightTheme } from '../theme/lightThemes';
 import { auroraTheme } from '../theme/modernThemes';
+import { createFlowTheme } from '../theme/flowTheme';
 import type { FlowNode } from '../types';
 
 interface ElementLike {
@@ -213,11 +214,22 @@ describe('renderFlowNode', () => {
     });
 
     it('should clip the accent bar to the accent width when shape is process', () => {
+      // Arrange
+      const theme = createFlowTheme(auroraTheme, { shapes: { process: { ...auroraTheme.shapes.process, accent: '#6366f1' } } });
+
+      // Act
+      const root = render(createParams([PROCESS_NODE], { theme }));
+
+      // Assert
+      expect(findChild(root, 'accent')?.clipPath?.shape?.width).toBe(theme.node.accentWidth);
+    });
+
+    it('should not draw an accent bar when the shape style has no accent', () => {
       // Act
       const root = render(createParams([PROCESS_NODE], { theme: auroraTheme }));
 
       // Assert
-      expect(findChild(root, 'accent')?.clipPath?.shape?.width).toBe(auroraTheme.node.accentWidth);
+      expect(findChild(root, 'accent')).toBeUndefined();
     });
 
     it('should not draw an accent bar when shape is decision', () => {

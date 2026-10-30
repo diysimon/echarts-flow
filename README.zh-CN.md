@@ -157,7 +157,7 @@ new FlowEditor(chart, { graph, direction: 'LR', theme: 'whiteboard', layout: { i
 
 ## 主题与样式
 
-内置主题：`light`、`dark`、`macarons`、`tech-blue`、`whiteboard`、`classic`，以及现代风格的 `aurora` 和 `aurora-dark`（渐变背景加柔和光晕、白色或毛玻璃卡片配渐变强调条、环形选中框、悬停时卡片浮起）。效果见 `test/cases/15-aurora.html`。
+内置主题：`light`、`dark`、`macarons`、`tech-blue`、`whiteboard`、`classic`，以及现代风格的 `aurora` 和 `aurora-dark`（克制的产品界面风格：近白或近黑画布、细边框加柔和阴影的卡片、实心靛蓝开始和墨黑结束药丸、判断和数据节点用浅色底区分、环形选中框、悬停时卡片浮起）。效果见 `test/cases/15-aurora.html`。
 
 ![全部内置主题](./docs/images/themes.jpg)
 

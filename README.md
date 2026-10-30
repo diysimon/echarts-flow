@@ -157,7 +157,7 @@ new FlowEditor(chart, { graph, direction: 'LR', theme: 'whiteboard', layout: { i
 
 ## Themes and styles
 
-Built-in themes: `light`, `dark`, `macarons`, `tech-blue`, `whiteboard`, `classic`, plus the modern `aurora` and `aurora-dark` (gradient background with soft glows, white or glass cards with a gradient accent bar, ring selection, cards that lift on hover). See `test/cases/15-aurora.html`.
+Built-in themes: `light`, `dark`, `macarons`, `tech-blue`, `whiteboard`, `classic`, plus the modern `aurora` and `aurora-dark` (a calm product-UI look: near-white or near-black canvas, cards with hairline borders and a soft shadow, a solid indigo start pill and an ink end pill, pale tints for decisions and data, ring selection, cards that lift on hover). See `test/cases/15-aurora.html`.
 
 ![all built-in themes](./docs/images/themes.jpg)
 
