@@ -14,5 +14,5 @@
     "resolveJsonModule": true,
     "types": ["vitest/globals"]
   },
-  "include": ["src", "demo", "test"]
+  "include": ["src", "demo", "test", "shared", "docs/docs.ts", "home.ts", "examples/examples.ts"]
 }

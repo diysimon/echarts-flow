@@ -78,7 +78,13 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        demo: resolve(root, 'index.html'),
+        // The bilingual site shell at the site root: home, docs and examples.
+        home: resolve(root, 'index.html'),
+        docs: resolve(root, 'docs/index.html'),
+        examples: resolve(root, 'examples/index.html'),
+        // The interactive editor demo, linked from the site as the live editor.
+        editor: resolve(root, 'editor.html'),
+        // Live case pages the examples link to.
         ...Object.fromEntries(casePages.map((file) => [`cases/${file.replace('.html', '')}`, resolve(root, 'test/cases', file)])),
       },
     },
