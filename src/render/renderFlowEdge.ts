@@ -4,7 +4,7 @@ import { calcArrowGeometry } from '../geometry/arrowShape';
 import { shortenEnd, shortenStart } from '../geometry/edgePath';
 import { EDGE_HIT_WIDTH } from '../theme/flowStyle';
 import type { FlowTheme } from '../theme/flowTheme';
-import { EDGE_LINE_SHAPE, type EdgeLineShape } from './edgeLineShape';
+import { EDGE_LINE_SHAPE, type EdgeLineShape } from './flowShapes';
 import type { FlowEdgePayload, FlowHitInfo, RenderedEdge } from './flowPayload';
 import { isTransparent } from './flowColor';
 import { projectPoint, snapLineWidth, snapToPixel } from './pixelAlign';

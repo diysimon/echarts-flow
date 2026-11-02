@@ -3,6 +3,7 @@ import { DEFAULT_NODE_SIZE, TEXT_WIDTH_RATIO } from '../theme/flowStyle';
 import type { FlowTheme } from '../theme/flowTheme';
 import { resolveNodeAppearance } from '../style/resolveAppearance';
 import { calcTextWidth, wrapText } from './textLayout';
+import { traceHalfEllipse, type PathTracer } from './pathTracer';
 
 export const PORT_SIDES: PortSide[] = ['top', 'right', 'bottom', 'left'];
 
@@ -14,6 +15,8 @@ const DOCUMENT_WAVE_RATIO = 0.1;
 const DATABASE_CAP_RATIO = 0.15;
 const MAX_DATABASE_CAP = 12;
 const SUBPROCESS_BAR_INSET = 10;
+/** Narrow subprocess nodes put their bars this share of the width in from the sides. */
+const SUBPROCESS_BAR_MAX_RATIO = 0.08;
 
 /** Shapes that lose text room to slanted sides may grow this much past the theme max width. */
 const NARROW_SHAPE_MAX_WIDTH_FACTOR = 1.3;
@@ -83,37 +86,58 @@ function calcDatabaseCap(height: number): number {
   return Math.min(height * DATABASE_CAP_RATIO, MAX_DATABASE_CAP);
 }
 
-/** SVG outline for curved shapes, in local coordinates centered at (0, 0). */
-export function getShapePath(shape: FlowNodeShape, width: number, height: number): string | null {
+/** Shapes whose outline has curves, traced by {@link traceShapeOutline}. */
+const CURVED_SHAPES = new Set<FlowNodeShape>(['document', 'database']);
+/** Shapes with stroke-only lines on top of the outline, traced by {@link traceShapeDecorations}. */
+const DECORATED_SHAPES = new Set<FlowNodeShape>(['database', 'subprocess']);
+
+export function hasCurvedOutline(shape: FlowNodeShape): boolean {
+  return CURVED_SHAPES.has(shape);
+}
+
+export function hasDecorations(shape: FlowNodeShape): boolean {
+  return DECORATED_SHAPES.has(shape);
+}
+
+/** Outline of curved shapes around (0, 0). Draws nothing for other shapes. */
+export function traceShapeOutline(tracer: PathTracer, shape: FlowNodeShape, width: number, height: number): void {
   const halfW = width / 2;
   const halfH = height / 2;
   if (shape === 'document') {
     const wave = height * DOCUMENT_WAVE_RATIO;
     const base = halfH - wave;
-    return `M${-halfW},${-halfH} L${halfW},${-halfH} L${halfW},${base} `
-      + `Q${halfW / 2},${base - wave * 2} 0,${base} Q${-halfW / 2},${base + wave * 2} ${-halfW},${base} Z`;
-  }
-  if (shape === 'database') {
+    tracer.moveTo(-halfW, -halfH);
+    tracer.lineTo(halfW, -halfH);
+    tracer.lineTo(halfW, base);
+    tracer.quadraticCurveTo(halfW / 2, base - wave * 2, 0, base);
+    tracer.quadraticCurveTo(-halfW / 2, base + wave * 2, -halfW, base);
+    tracer.closePath();
+  } else if (shape === 'database') {
     const cap = calcDatabaseCap(height);
-    return `M${-halfW},${-halfH + cap} A${halfW},${cap} 0 0 1 ${halfW},${-halfH + cap} `
-      + `L${halfW},${halfH - cap} A${halfW},${cap} 0 0 1 ${-halfW},${halfH - cap} Z`;
+    tracer.moveTo(-halfW, -halfH + cap);
+    traceHalfEllipse(tracer, { x: 0, y: -halfH + cap }, halfW, cap, true, true);
+    tracer.lineTo(halfW, halfH - cap);
+    traceHalfEllipse(tracer, { x: 0, y: halfH - cap }, halfW, cap, false, false);
+    tracer.closePath();
   }
-  return null;
 }
 
-/** Extra stroke-only lines drawn on top of the outline. */
-export function getShapeDecorations(shape: FlowNodeShape, width: number, height: number): string[] {
+/** Extra stroke-only lines drawn on top of the outline, around (0, 0). */
+export function traceShapeDecorations(tracer: PathTracer, shape: FlowNodeShape, width: number, height: number): void {
   const halfW = width / 2;
   const halfH = height / 2;
   if (shape === 'database') {
+    // Front rim of the top cap.
     const cap = calcDatabaseCap(height);
-    return [`M${-halfW},${-halfH + cap} A${halfW},${cap} 0 0 0 ${halfW},${-halfH + cap}`];
+    tracer.moveTo(-halfW, -halfH + cap);
+    traceHalfEllipse(tracer, { x: 0, y: -halfH + cap }, halfW, cap, true, false);
+  } else if (shape === 'subprocess') {
+    const barX = halfW - Math.min(SUBPROCESS_BAR_INSET, width * SUBPROCESS_BAR_MAX_RATIO);
+    tracer.moveTo(-barX, -halfH);
+    tracer.lineTo(-barX, halfH);
+    tracer.moveTo(barX, -halfH);
+    tracer.lineTo(barX, halfH);
   }
-  if (shape === 'subprocess') {
-    const barX = halfW - Math.min(SUBPROCESS_BAR_INSET, width * 0.08);
-    return [`M${-barX},${-halfH} L${-barX},${halfH}`, `M${barX},${-halfH} L${barX},${halfH}`];
-  }
-  return [];
 }
 
 /** Corner radius for rect-based shapes; start/end render as capsules. */

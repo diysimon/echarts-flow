@@ -7,11 +7,13 @@ export const FLOW_EDGE_SERIES_TYPE = 'flowEdge';
 export const FLOW_LANE_SERIES_TYPE = 'flowLane';
 export const FLOW_GRID_SERIES_TYPE = 'flowGrid';
 export const FLOW_OVERLAY_SERIES_TYPE = 'flowOverlay';
+export const FLOW_OVERVIEW_SERIES_TYPE = 'flowOverview';
 export const FLOW_NODE_SERIES_ID = 'echarts-flow-node';
 export const FLOW_EDGE_SERIES_ID = 'echarts-flow-edge';
 export const FLOW_LANE_SERIES_ID = 'echarts-flow-lane';
 export const FLOW_GRID_SERIES_ID = 'echarts-flow-grid';
 export const FLOW_OVERLAY_SERIES_ID = 'echarts-flow-overlay';
+export const FLOW_OVERVIEW_SERIES_ID = 'echarts-flow-overview';
 export const DRAFT_EDGE_ID = '__echarts_flow_draft__';
 
 /** Every payload carries the device pixel ratio, so shapes and text snap to device pixels. */
@@ -32,6 +34,8 @@ export interface FlowNodePayload extends PixelGridPayload, LabelPayload {
   /** Node whose ports are shown; also the drop target while connecting. */
   hoveredId: string | null;
   isEditable: boolean;
+  /** Hide connection ports even on the hovered node, used in the overview. */
+  arePortsHidden?: boolean;
   theme: FlowTheme;
 }
 
@@ -94,6 +98,15 @@ export interface FlowOverlayPayload extends PixelGridPayload {
   selectionBox: Rect | null;
   guides: AlignGuide[];
   edgeHandles: EdgeHandle[];
+}
+
+/**
+ * Nodes and edges drawn in batches when many are visible. They are rendered
+ * with the regular node and edge payloads, then regrouped by style.
+ */
+export interface FlowOverviewPayload {
+  nodes: FlowNodePayload;
+  edges: FlowEdgePayload;
 }
 
 /**

@@ -14,7 +14,14 @@ import type {
   ResolvedNode,
   Viewport,
 } from '../types';
-import { buildFlowOptionFromScene, buildFlowScene, calcFitViewport, CULL_MARGIN_RATIO } from '../option/buildFlowOption';
+import {
+  buildFlowOptionFromScene,
+  buildFlowScene,
+  calcFitViewport,
+  countDrawnNodes,
+  CULL_MARGIN_RATIO,
+  DEFAULT_OVERVIEW_NODE_COUNT,
+} from '../option/buildFlowOption';
 import { calcFlowLayout, fillMissingPositions, type FlowLayoutOptions } from '../layout/calcFlowLayout';
 import { findLaneAt, type LaneLayout } from '../layout/laneLayout';
 import {
@@ -31,7 +38,8 @@ import {
   type ZoomLimits,
 } from '../geometry/viewport';
 import { RouteCache, type EdgeRoutingOptions } from '../geometry/edgeRouter';
-import { isFlowHitInfo, type AlignGuide, type FlowHitInfo } from '../render/flowPayload';
+import { DRAFT_EDGE_ID, isFlowHitInfo, type AlignGuide, type FlowHitInfo } from '../render/flowPayload';
+import { EDGE_HIT_WIDTH } from '../theme/flowStyle';
 import { watchDevicePixelRatio } from '../render/pixelRatioSync';
 import type { FlowTheme, FlowThemeName } from '../theme/flowTheme';
 import { resolveFlowTheme } from '../theme/themeRegistry';
@@ -44,6 +52,7 @@ import { copyElements, pasteElements, type FlowClipboard } from './clipboard';
 import { FlowHistory } from './flowHistory';
 import { LabelInput } from './LabelInput';
 import { ViewTransformer } from './viewTransform';
+import { findEdgeAt, findNodeAt } from './overviewHit';
 import { calcWheelZoomFactor, stepZoom } from './zoomAnimation';
 import { isNudgeCommand, resolveShortcut, type EditorCommand } from './keyboardShortcuts';
 import { addLane, removeLane, setNodeLanes, updateLane } from './laneOps';
@@ -83,6 +92,13 @@ export interface FlowEditorOptions {
   routing?: EdgeRoutingOptions;
   /** Skip labels smaller than this many screen pixels, which speeds up big zoomed-out graphs. Defaults to 0: always draw. */
   minLabelPixels?: number;
+  /**
+   * Above this many drawn nodes (those in view or within one view size of it),
+   * nodes and edges are drawn in batches so pan, zoom and drag stay fast; they
+   * look the same and still respond to the pointer. Defaults to 300. Pass
+   * `Infinity` to always draw in detail. Only the Canvas renderer batches.
+   */
+  overviewNodeCount?: number;
   onChange?(graph: FlowGraph): void;
   onSelectionChange?(selection: FlowSelection): void;
 }
@@ -133,6 +149,11 @@ const ZOOM_OUT_LOOKAHEAD = 0.7;
 /** When a full render takes longer than this, hover redraws wait until the pointer rests. */
 const HOVER_RENDER_BUDGET = 12;
 const HOVER_REST_DELAY = 90;
+/**
+ * The overview is left only once the visible node count drops this far below
+ * the threshold, so zooming around the threshold does not flip back and forth.
+ */
+const OVERVIEW_EXIT_RATIO = 0.8;
 
 const NUDGE_DIRECTIONS: Record<'nudge-left' | 'nudge-right' | 'nudge-up' | 'nudge-down', Point> = {
   'nudge-left': { x: -1, y: 0 },
@@ -206,6 +227,8 @@ export class FlowEditor {
   /** Milliseconds the last full render took; slow scenes wait for the pointer to rest before hover redraws. */
   private lastRenderCost = 0;
   private hoverTimer: number | null = null;
+  /** The last render batched nodes and edges, which then cannot be hit by ECharts. */
+  private isOverview = false;
   /** A frame is pending that must rebuild the drawing, not just move it. */
   private needsFullRender = false;
   private readonly viewTransformer: ViewTransformer;
@@ -580,8 +603,19 @@ export class FlowEditor {
     this.renderedEdges = scene.edges;
     this.renderedLanes = scene.lanes;
     this.renderedViewport = drawnViewport;
-    this.chart.setOption(buildFlowOptionFromScene(scene, config));
+    this.isOverview = this.shouldUseOverview(scene.nodes, drawnViewport, config.viewSize, config.renderer);
+    this.chart.setOption(buildFlowOptionFromScene(scene, { ...config, detailLevel: this.isOverview ? 'overview' : 'detail' }));
     this.lastRenderCost = performance.now() - startTime;
+  }
+
+  /** Enters the overview above the node threshold and leaves it a bit below, see OVERVIEW_EXIT_RATIO. */
+  private shouldUseOverview(nodes: ResolvedNode[], viewport: Viewport, viewSize: { width: number; height: number }, renderer: string): boolean {
+    if (renderer !== 'canvas') {
+      return false;
+    }
+    const threshold = this.options.overviewNodeCount ?? DEFAULT_OVERVIEW_NODE_COUNT;
+    const limit = this.isOverview ? threshold * OVERVIEW_EXIT_RATIO : threshold;
+    return countDrawnNodes(nodes, viewport, viewSize) > limit;
   }
 
   private getDraftEdge() {
@@ -758,6 +792,10 @@ export class FlowEditor {
     const width = this.chart.getWidth();
     const height = this.chart.getHeight();
     const pixelRatio = this.chart.getDevicePixelRatio();
+    // Batched drawing is cheap enough to redraw every frame, which keeps it sharp and complete.
+    if (this.isOverview) {
+      return false;
+    }
     if (this.renderedNodes.length > LARGE_SCENE_NODES) {
       // Big scenes take several milliseconds to repaint, so move the finished
       // bitmap instead and redraw once too much empty space has scrolled in.
@@ -843,6 +881,8 @@ export class FlowEditor {
     this.chart.on('mouseout', this.handleElementMouseOut);
     this.chart.on('dblclick', this.handleElementDoubleClick);
     this.chart.getZr().on('mousedown', this.handleBlankMouseDown);
+    this.chart.getZr().on('mousemove', this.handleBlankMouseMove);
+    this.chart.getZr().on('dblclick', this.handleBlankDoubleClick);
     this.chart.getZr().on('globalout', this.handlePointerLeave);
     this.container.addEventListener('wheel', this.handleWheel, { passive: false });
     this.container.addEventListener('keydown', this.handleKeyDown);
@@ -855,6 +895,8 @@ export class FlowEditor {
     this.chart.off('mouseout', this.handleElementMouseOut);
     this.chart.off('dblclick', this.handleElementDoubleClick);
     this.chart.getZr().off('mousedown', this.handleBlankMouseDown);
+    this.chart.getZr().off('mousemove', this.handleBlankMouseMove);
+    this.chart.getZr().off('dblclick', this.handleBlankDoubleClick);
     this.chart.getZr().off('globalout', this.handlePointerLeave);
     this.container.removeEventListener('wheel', this.handleWheel);
     this.container.removeEventListener('keydown', this.handleKeyDown);
@@ -884,6 +926,10 @@ export class FlowEditor {
     if (!info || !nativeEvent || nativeEvent.button !== 0) {
       return;
     }
+    this.pressHit(info, nativeEvent);
+  };
+
+  private pressHit(info: FlowHitInfo, nativeEvent: MouseEvent): void {
     this.focusContainer();
     const screen = this.getScreenPoint(nativeEvent);
     const isAdditive = this.editOptions.canMultiSelect && (nativeEvent.shiftKey || nativeEvent.metaKey || nativeEvent.ctrlKey);
@@ -910,7 +956,7 @@ export class FlowEditor {
       return;
     }
     this.pressNode(info.nodeId, screen, isAdditive);
-  };
+  }
 
   private startReconnect(edgeId: string, end: EdgeEnd, screen: Point): void {
     const edge = this.graph.edges.find((item) => item.id === edgeId);
@@ -983,8 +1029,49 @@ export class FlowEditor {
     if (event.target || nativeEvent.button !== 0) {
       return;
     }
+    const batchedHit = this.findBatchedHit(nativeEvent);
+    if (batchedHit) {
+      this.pressHit(batchedHit, nativeEvent);
+      return;
+    }
     this.focusContainer();
     this.pressBlank(this.getScreenPoint(nativeEvent), nativeEvent.shiftKey);
+  };
+
+  /**
+   * Batched nodes and edges have no elements of their own, so in the overview
+   * the editor finds what is under the pointer from the scene geometry.
+   */
+  private findBatchedHit(event: { clientX: number; clientY: number }): FlowHitInfo | null {
+    if (!this.isOverview) {
+      return null;
+    }
+    const point = toWorld(this.viewport, this.getScreenPoint(event));
+    const node = findNodeAt(this.renderedNodes, point);
+    if (node) {
+      return { role: 'node', nodeId: node.id };
+    }
+    const edge = findEdgeAt(this.renderedEdges.filter((item) => item.id !== DRAFT_EDGE_ID), point, EDGE_HIT_WIDTH / 2 / this.viewport.scale);
+    return edge ? { role: 'edge', edgeId: edge.id } : null;
+  }
+
+  /** Hover for batched nodes; nodes with elements get it from mouseover and mouseout. */
+  private readonly handleBlankMouseMove = (event: ElementEvent): void => {
+    if (!this.isOverview || event.target) {
+      return;
+    }
+    const hit = this.findBatchedHit(event.event as unknown as MouseEvent);
+    this.setHoveredNode(hit?.role === 'node' ? hit.nodeId : null);
+  };
+
+  private readonly handleBlankDoubleClick = (event: ElementEvent): void => {
+    if (event.target) {
+      return;
+    }
+    const hit = this.findBatchedHit(event.event as unknown as MouseEvent);
+    if (hit) {
+      this.editHit(hit);
+    }
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -1116,7 +1203,13 @@ export class FlowEditor {
 
   private readonly handleElementDoubleClick = (params: ECElementEvent): void => {
     const info = readHitInfo(params);
-    if (!isEditAllowed(this.editOptions, 'canEditLabels') || !info) {
+    if (info) {
+      this.editHit(info);
+    }
+  };
+
+  private editHit(info: FlowHitInfo): void {
+    if (!isEditAllowed(this.editOptions, 'canEditLabels')) {
       return;
     }
     if (info.role === 'edge' || info.role === 'edge-end') {
@@ -1134,7 +1227,7 @@ export class FlowEditor {
         this.editNodeLabel(info.nodeId);
       }
     }
-  };
+  }
 
   private editLaneLabel(laneId: string): void {
     const lane = this.renderedLanes.lanes.find((item) => item.id === laneId);
@@ -1254,7 +1347,7 @@ export class FlowEditor {
 
   /** Redraws mid-zoom; big scenes zooming out draw ahead so the following frames stay on the bitmap. */
   private renderZoomFrame(anchor: Point, isZoomingOut: boolean): void {
-    if (!isZoomingOut || this.renderedNodes.length <= LARGE_SCENE_NODES) {
+    if (!isZoomingOut || this.isOverview || this.renderedNodes.length <= LARGE_SCENE_NODES) {
       this.renderNow(false);
       return;
     }

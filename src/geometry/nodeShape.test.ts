@@ -1,4 +1,5 @@
-import { getPortOffset, getPortPosition, getShapeDecorations, getShapePath, getShapePolygon, resolveNode } from './nodeShape';
+import { getPortOffset, getPortPosition, getShapePolygon, hasDecorations, resolveNode, traceShapeDecorations, traceShapeOutline } from './nodeShape';
+import { recordPathData } from './pathTracer';
 import { DEFAULT_NODE_SIZE } from '../theme/flowStyle';
 import { createFlowTheme } from '../theme/flowTheme';
 import { lightTheme } from '../theme/lightThemes';
@@ -132,31 +133,39 @@ describe('getShapePolygon', () => {
   });
 });
 
-describe('getShapePath', () => {
-  it('should build an arc outline when shape is database', () => {
+describe('traceShapeOutline', () => {
+  it('should draw curved caps when shape is database', () => {
     // Act
-    const pathData = getShapePath('database', 100, 60);
+    const pathData = recordPathData((tracer) => traceShapeOutline(tracer, 'database', 100, 60));
 
     // Assert
-    expect(pathData).toContain('A');
+    expect(pathData).toContain('C');
   });
 
-  it('should return null when shape has a straight outline', () => {
+  it('should draw nothing when shape has a straight outline', () => {
     // Act
-    const pathData = getShapePath('process', 100, 60);
+    const pathData = recordPathData((tracer) => traceShapeOutline(tracer, 'process', 100, 60));
 
     // Assert
-    expect(pathData).toBeNull();
+    expect(pathData).toBe('');
   });
 });
 
-describe('getShapeDecorations', () => {
+describe('traceShapeDecorations', () => {
   it('should draw two side bars when shape is subprocess', () => {
     // Act
-    const decorations = getShapeDecorations('subprocess', 100, 60);
+    const pathData = recordPathData((tracer) => traceShapeDecorations(tracer, 'subprocess', 100, 60));
 
     // Assert
-    expect(decorations).toHaveLength(2);
+    expect(pathData.match(/M/g)).toHaveLength(2);
+  });
+
+  it('should report no decorations when shape is process', () => {
+    // Act
+    const isDecorated = hasDecorations('process');
+
+    // Assert
+    expect(isDecorated).toBe(false);
   });
 });
 

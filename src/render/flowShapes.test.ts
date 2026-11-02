@@ -1,12 +1,12 @@
 import { graphic } from 'echarts/core';
-import { EDGE_LINE_SHAPE, registerEdgeLineShape } from './edgeLineShape';
+import { EDGE_LINE_SHAPE, registerFlowShapes } from './flowShapes';
 
 function createTracer() {
   return { moveTo: vi.fn(), lineTo: vi.fn(), quadraticCurveTo: vi.fn(), bezierCurveTo: vi.fn() };
 }
 
 function buildPath(shape: object) {
-  registerEdgeLineShape();
+  registerFlowShapes();
   const ShapeClass = graphic.getShapeClass(EDGE_LINE_SHAPE) as unknown as new () => {
     buildPath(ctx: unknown, shape: object): void;
   };
@@ -15,7 +15,7 @@ function buildPath(shape: object) {
   return tracer;
 }
 
-describe('edgeLineShape', () => {
+describe('flowShapes', () => {
   it('should round corners when the points form a polyline', () => {
     // Act
     const tracer = buildPath({ points: [{ x: 0, y: 0 }, { x: 0, y: 50 }, { x: 50, y: 50 }], radius: 8, isCurve: false });

@@ -1,8 +1,9 @@
 import type { CustomSeriesRenderItemParams, CustomSeriesRenderItemReturn } from 'echarts';
 import type { FlowColor, FlowNodeShape, PortSide, ResolvedNode } from '../types';
-import { getPortOffset, getShapeDecorations, getShapePath, getShapePolygon, getShapeRadius, PORT_SIDES } from '../geometry/nodeShape';
+import { getPortOffset, getShapePolygon, getShapeRadius, hasCurvedOutline, hasDecorations, PORT_SIDES } from '../geometry/nodeShape';
 import type { FlowTheme } from '../theme/flowTheme';
 import type { FlowHitInfo, FlowNodePayload } from './flowPayload';
+import { NODE_DECORATION_SHAPE, NODE_OUTLINE_SHAPE } from './flowShapes';
 import { isTransparent, toZrColor } from './flowColor';
 import { alignToPixel, snapLineHeight, snapLineWidth, snapToPixel } from './pixelAlign';
 
@@ -34,6 +35,11 @@ interface NodeView {
   pixelRatio: number;
   /** Labels whose on-screen font size is below this are skipped. */
   minLabelPixels: number;
+}
+
+/** ECharts typings only know built-in element types; registered shapes work the same at runtime. */
+function buildRegisteredShape(option: Record<string, unknown>): ElementOption {
+  return option as unknown as ElementOption;
 }
 
 /** Ring styles mark selection with a halo, so the border keeps its own color. */
@@ -97,9 +103,8 @@ function buildShapeElement(view: NodeView): ElementOption {
     const points = polygon.map(([x, y]) => [alignToPixel(x, lineWidth, pixelRatio), alignToPixel(y, lineWidth, pixelRatio)]);
     return { type: 'polygon', name: 'shape', info, shape: { points }, style };
   }
-  const pathData = getShapePath(node.shape, width, height);
-  if (pathData) {
-    return { type: 'path', name: 'shape', info, shape: { pathData }, style };
+  if (hasCurvedOutline(node.shape)) {
+    return buildRegisteredShape({ type: NODE_OUTLINE_SHAPE, name: 'shape', info, shape: { shape: node.shape, width, height }, style });
   }
   if (node.shape === 'circle') {
     return { type: 'ellipse', name: 'shape', info, shape: { cx: 0, cy: 0, rx: width / 2, ry: height / 2 }, style };
@@ -136,9 +141,8 @@ function buildSelectionRing(view: NodeView): ElementOption | null {
   if (node.shape === 'circle') {
     return { ...base, type: 'ellipse', shape: { cx: 0, cy: 0, rx: ringWidth / 2, ry: ringHeight / 2 } };
   }
-  const pathData = getShapePath(node.shape, ringWidth, ringHeight);
-  if (pathData) {
-    return { ...base, type: 'path', shape: { pathData } };
+  if (hasCurvedOutline(node.shape)) {
+    return buildRegisteredShape({ ...base, type: NODE_OUTLINE_SHAPE, shape: { shape: node.shape, width: ringWidth, height: ringHeight } });
   }
   const radius = getShapeRadius(node.shape, height, node.appearance.radius * view.scale);
   return {
@@ -172,15 +176,18 @@ function buildAccentBar(view: NodeView): ElementOption | null {
   };
 }
 
-function buildDecorations(view: NodeView): ElementOption[] {
+function buildDecorations(view: NodeView): ElementOption | null {
   const { appearance } = view.node;
-  return getShapeDecorations(view.node.shape, view.width, view.height).map((pathData, index) => ({
-    type: 'path',
-    name: `decoration-${index}`,
+  if (!hasDecorations(view.node.shape)) {
+    return null;
+  }
+  return buildRegisteredShape({
+    type: NODE_DECORATION_SHAPE,
+    name: 'decoration',
     silent: true,
-    shape: { pathData },
+    shape: { shape: view.node.shape, width: view.width, height: view.height },
     style: { fill: 'none', stroke: toZrColor(calcStrokeColor(view)), lineWidth: snapLineWidth(appearance.lineWidth, view.pixelRatio), opacity: appearance.opacity },
-  }));
+  });
 }
 
 /**
@@ -275,12 +282,12 @@ export function renderFlowNode(params: CustomSeriesRenderItemParams): CustomSeri
     pixelRatio,
     minLabelPixels: payload.minLabelPixels ?? 0,
   };
-  const shouldShowPorts = payload.isEditable && view.isHovered;
+  const shouldShowPorts = payload.isEditable && view.isHovered && !payload.arePortsHidden;
   const children = [
     buildSelectionRing(view),
     buildShapeElement(view),
     buildAccentBar(view),
-    ...buildDecorations(view),
+    buildDecorations(view),
     buildLabel(view),
     buildStatusDot(view),
     ...(shouldShowPorts ? PORT_SIDES.map((side) => buildPort(view, side)) : []),

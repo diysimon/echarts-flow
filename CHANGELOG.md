@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Overview rendering for large graphs: above `overviewNodeCount` drawn nodes
+  (300 by default) nodes and edges are drawn in batches, one path per style and
+  one canvas of labels, so a full redraw of 1000 nodes stays a few milliseconds.
+  Selected, hovered, running and gradient items keep their own elements and stay
+  interactive. Controlled with the `detailLevel` and `overviewNodeCount` options.
+
+### Changed
+
+- Edge lines and curved node outlines draw from their geometry and update in
+  place instead of from SVG path strings, and series payloads are passed to
+  ECharts by reference, which cuts a full redraw of 1000 visible nodes from
+  about 45 ms to about 30 ms.
+
 ## [0.1.0] - 2026-10-30
 
 First release.
@@ -37,3 +54,4 @@ First release.
   chosen on-screen size.
 
 [0.1.0]: https://github.com/diysimon/echarts-flow/releases/tag/v0.1.0
+[Unreleased]: https://github.com/diysimon/echarts-flow/compare/v0.1.0...HEAD

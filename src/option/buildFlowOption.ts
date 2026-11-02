@@ -33,6 +33,8 @@ import {
   FLOW_NODE_SERIES_TYPE,
   FLOW_OVERLAY_SERIES_ID,
   FLOW_OVERLAY_SERIES_TYPE,
+  FLOW_OVERVIEW_SERIES_ID,
+  FLOW_OVERVIEW_SERIES_TYPE,
   type AlignGuide,
   type EdgeHandle,
   type FlowEdgePayload,
@@ -40,6 +42,7 @@ import {
   type FlowLanePayload,
   type FlowNodePayload,
   type FlowOverlayPayload,
+  type FlowOverviewPayload,
   type RenderedEdge,
 } from '../render/flowPayload';
 
@@ -90,7 +93,22 @@ export interface FlowOptionConfig {
    * saves thousands of text elements on big graphs. Defaults to 0: always draw.
    */
   minLabelPixels?: number;
+  /**
+   * 'overview' draws nodes and edges in batches: one path per style and one
+   * canvas of labels, so thousands of visible nodes render in a few
+   * milliseconds, but they cannot be hit. Selected and hovered nodes, selected,
+   * running and draft edges, and nodes with gradient fills keep their own
+   * elements. 'auto', the default, picks 'overview' when more than
+   * `overviewNodeCount` nodes would be drawn, counting the culling margin
+   * around the view. Needs `renderer: 'canvas'` and `viewSize`; otherwise
+   * everything is drawn in detail.
+   */
+  detailLevel?: DetailLevel;
+  /** Drawn node count above which 'auto' switches to the overview. Defaults to 300. */
+  overviewNodeCount?: number;
 }
+
+export type DetailLevel = 'auto' | 'detail' | 'overview';
 
 export interface FlowOption extends EChartsCoreOption {
   series: CustomSeriesOption[];
@@ -112,6 +130,7 @@ const OVERLAY_SERIES_Z = 4;
 const EMPTY_SELECTION: FlowSelection = { nodeIds: [], edgeIds: [] };
 /** Culling keeps one view size around the visible area, so a short pan never reaches undrawn space. */
 export const CULL_MARGIN_RATIO = 1;
+export const DEFAULT_OVERVIEW_NODE_COUNT = 300;
 
 function calcEdgeBounds(edge: RenderedEdge): Bounds {
   const xs = edge.points.map((point) => point.x);
@@ -119,12 +138,65 @@ function calcEdgeBounds(edge: RenderedEdge): Bounds {
   return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
 }
 
-/** Drops nodes and edges far outside the view. The draft edge always stays. */
-function cullScene(scene: FlowScene, viewport: Viewport, viewSize: FlowOptionConfig['viewSize']): Pick<FlowScene, 'nodes' | 'edges'> {
+/**
+ * Nodes the detailed series would draw: those within one view size of the
+ * visible area. This, not the visible count, is what a render costs.
+ */
+export function countDrawnNodes(nodes: ResolvedNode[], viewport: Viewport, viewSize: { width: number; height: number }): number {
+  const area = calcViewBounds(viewport, viewSize.width, viewSize.height, CULL_MARGIN_RATIO);
+  return nodes.reduce((count, node) => count + (isBoundsOverlapping(calcNodesBounds([node]) as Bounds, area) ? 1 : 0), 0);
+}
+
+function resolveIsOverview(drawnNodeCount: number, config: FlowOptionConfig): boolean {
+  const level = config.detailLevel ?? 'auto';
+  if (level === 'detail' || config.renderer !== 'canvas' || !config.viewSize) {
+    return false;
+  }
+  return level === 'overview' || drawnNodeCount > (config.overviewNodeCount ?? DEFAULT_OVERVIEW_NODE_COUNT);
+}
+
+/** Batched paths share one bounding box, which would stretch a gradient across all of them. */
+function hasGradient(node: ResolvedNode): boolean {
+  const { fill, stroke, accent } = node.appearance;
+  return [fill, stroke, accent].some((color) => color !== null && typeof color !== 'string');
+}
+
+interface SceneSplit {
+  detail: Pick<FlowScene, 'nodes' | 'edges'>;
+  overview: Pick<FlowScene, 'nodes' | 'edges'>;
+}
+
+/**
+ * In the overview, items that react to the user or animate keep their own
+ * elements: selected, hovered and gradient nodes, and selected, running and
+ * draft edges. Everything else is batched.
+ */
+function splitForOverview({ nodes, edges }: Pick<FlowScene, 'nodes' | 'edges'>, config: FlowOptionConfig): SceneSplit {
+  const selection = config.selection ?? EMPTY_SELECTION;
+  const hotNodeIds = new Set([...selection.nodeIds, ...(config.hoveredNodeId ? [config.hoveredNodeId] : [])]);
+  const hotEdgeIds = new Set([...selection.edgeIds, ...(config.handleEdgeId ? [config.handleEdgeId] : [])]);
+  const isHotNode = (node: ResolvedNode) => hotNodeIds.has(node.id) || hasGradient(node);
+  const isHotEdge = (edge: RenderedEdge) => edge.isDraft || edge.isRunning || hotEdgeIds.has(edge.id);
+  return {
+    detail: { nodes: nodes.filter(isHotNode), edges: edges.filter(isHotEdge) },
+    overview: { nodes: nodes.filter((node) => !isHotNode(node)), edges: edges.filter((edge) => !isHotEdge(edge)) },
+  };
+}
+
+/**
+ * Drops nodes and edges outside the view plus `marginRatio` view sizes around
+ * it. The draft edge always stays.
+ */
+function cullScene(
+  scene: Pick<FlowScene, 'nodes' | 'edges'>,
+  viewport: Viewport,
+  viewSize: FlowOptionConfig['viewSize'],
+  marginRatio = CULL_MARGIN_RATIO,
+): Pick<FlowScene, 'nodes' | 'edges'> {
   if (!viewSize) {
     return scene;
   }
-  const area = calcViewBounds(viewport, viewSize.width, viewSize.height, CULL_MARGIN_RATIO);
+  const area = calcViewBounds(viewport, viewSize.width, viewSize.height, marginRatio);
   const nodes = scene.nodes.filter((node) => isBoundsOverlapping(calcNodesBounds([node]) as Bounds, area));
   const edges = scene.edges.filter((edge) => edge.isDraft || isBoundsOverlapping(calcEdgeBounds(edge), area));
   return { nodes, edges };
@@ -246,13 +318,17 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
   const selection = config.selection ?? EMPTY_SELECTION;
   const { nodes, edges } = cullScene(scene, viewport, config.viewSize);
   const pixelRatio = config.pixelRatio ?? 1;
+  const isOverview = resolveIsOverview(nodes.length, config);
+  // The overview is redrawn on every pan and zoom frame, so it needs no margin.
+  const split = isOverview
+    ? splitForOverview(cullScene({ nodes, edges }, viewport, config.viewSize, 0), config)
+    : { detail: { nodes, edges }, overview: { nodes: [], edges: [] } };
 
   const gridPayload: FlowGridPayload = { viewport, theme, pixelRatio, shouldUsePattern: config.renderer === 'canvas' };
   const lanePayload: FlowLanePayload = { lanes: lanes.lanes, title: lanes.title, viewport, theme, pixelRatio };
   const minLabelPixels = config.minLabelPixels ?? 0;
-  const edgePayload: FlowEdgePayload = { edges, viewport, selectedIds: selection.edgeIds, theme, pixelRatio, minLabelPixels };
-  const nodePayload: FlowNodePayload = {
-    nodes,
+  const edgeBase = { viewport, selectedIds: selection.edgeIds, theme, pixelRatio, minLabelPixels };
+  const nodeBase = {
     viewport,
     selectedIds: selection.nodeIds,
     hoveredId: config.hoveredNodeId ?? null,
@@ -260,6 +336,15 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
     theme,
     pixelRatio,
     minLabelPixels,
+    // In the overview nodes are tiny and the editor hit-tests them itself, so
+    // ports would only blanket the node and hijack its press into a connection.
+    arePortsHidden: isOverview,
+  };
+  const edgePayload: FlowEdgePayload = { ...edgeBase, edges: split.detail.edges };
+  const nodePayload: FlowNodePayload = { ...nodeBase, nodes: split.detail.nodes };
+  const overviewPayload: FlowOverviewPayload = {
+    edges: { ...edgeBase, edges: split.overview.edges },
+    nodes: { ...nodeBase, nodes: split.overview.nodes },
   };
   const overlayPayload: FlowOverlayPayload = {
     viewport,
@@ -295,19 +380,21 @@ export function buildFlowOptionFromScene(scene: FlowScene, config: FlowOptionCon
     series: [
       buildSeries(FLOW_GRID_SERIES_ID, FLOW_GRID_SERIES_TYPE, GRID_SERIES_Z, gridPayload, [{ id: 'grid', value: [0] }]),
       buildSeries(FLOW_LANE_SERIES_ID, FLOW_LANE_SERIES_TYPE, LANE_SERIES_Z, lanePayload, laneItems.map((id) => ({ id, value: [0] }))),
+      // Below the detailed edges, so selected and running edges stay on top.
+      buildSeries(FLOW_OVERVIEW_SERIES_ID, FLOW_OVERVIEW_SERIES_TYPE, EDGE_SERIES_Z, overviewPayload, isOverview ? [{ id: 'overview', value: [0] }] : []),
       buildSeries(
         FLOW_EDGE_SERIES_ID,
         FLOW_EDGE_SERIES_TYPE,
         EDGE_SERIES_Z,
         edgePayload,
-        edges.map((edge) => ({ id: edge.id, name: edge.label ?? '', value: [0] })),
+        edgePayload.edges.map((edge) => ({ id: edge.id, name: edge.label ?? '', value: [0] })),
       ),
       buildSeries(
         FLOW_NODE_SERIES_ID,
         FLOW_NODE_SERIES_TYPE,
         NODE_SERIES_Z,
         nodePayload,
-        nodes.map((node) => ({ id: node.id, name: node.label, value: [node.x, node.y] })),
+        nodePayload.nodes.map((node) => ({ id: node.id, name: node.label, value: [node.x, node.y] })),
       ),
       buildSeries(FLOW_OVERLAY_SERIES_ID, FLOW_OVERLAY_SERIES_TYPE, OVERLAY_SERIES_Z, overlayPayload, [{ id: 'overlay', value: [0] }]),
     ],

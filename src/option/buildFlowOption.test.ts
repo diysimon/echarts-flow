@@ -10,10 +10,13 @@ import {
   FLOW_NODE_SERIES_TYPE,
   FLOW_OVERLAY_SERIES_ID,
   FLOW_OVERLAY_SERIES_TYPE,
+  FLOW_OVERVIEW_SERIES_ID,
+  FLOW_OVERVIEW_SERIES_TYPE,
   type FlowEdgePayload,
   type FlowLanePayload,
   type FlowNodePayload,
   type FlowOverlayPayload,
+  type FlowOverviewPayload,
 } from '../render/flowPayload';
 import { darkTheme, techBlueTheme } from '../theme/darkThemes';
 import type { FlowGraph } from '../types';
@@ -45,6 +48,7 @@ function getPayloads(option: ReturnType<typeof buildFlowOption>) {
     node: findSeries(option, FLOW_NODE_SERIES_ID).itemPayload as unknown as FlowNodePayload,
     lane: findSeries(option, FLOW_LANE_SERIES_ID).itemPayload as unknown as FlowLanePayload,
     overlay: findSeries(option, FLOW_OVERLAY_SERIES_ID).itemPayload as unknown as FlowOverlayPayload,
+    overview: findSeries(option, FLOW_OVERVIEW_SERIES_ID).itemPayload as unknown as FlowOverviewPayload,
   };
 }
 
@@ -57,6 +61,7 @@ describe('buildFlowOption', () => {
     expect(option.series.map((series) => series.renderItem)).toEqual([
       FLOW_GRID_SERIES_TYPE,
       FLOW_LANE_SERIES_TYPE,
+      FLOW_OVERVIEW_SERIES_TYPE,
       FLOW_EDGE_SERIES_TYPE,
       FLOW_NODE_SERIES_TYPE,
       FLOW_OVERLAY_SERIES_TYPE,
@@ -225,6 +230,71 @@ describe('buildFlowOption', () => {
     // Assert
     const draft = getPayloads(option).edge.edges.find((edge) => edge.id === DRAFT_EDGE_ID);
     expect(draft?.points[0]).toEqual({ x: 500, y: 500 });
+  });
+});
+
+describe('buildFlowOption overview', () => {
+  const VIEW_SIZE = { width: 800, height: 600 };
+
+  function createGrid(count: number): FlowGraph {
+    const columns = Math.ceil(Math.sqrt(count));
+    const nodes = Array.from({ length: count }, (_, index) => ({
+      id: `n${index}`,
+      label: `N${index}`,
+      shape: 'process' as const,
+      x: (index % columns) * 20,
+      y: Math.floor(index / columns) * 20,
+    }));
+    return { nodes, edges: [{ id: 'e', source: 'n0', target: 'n1' }] };
+  }
+
+  it('should batch nodes when more than overviewNodeCount are visible', () => {
+    // Act
+    const option = buildFlowOption(createGrid(4), { viewSize: VIEW_SIZE, renderer: 'canvas', overviewNodeCount: 3 });
+
+    // Assert
+    expect(getPayloads(option).overview.nodes.nodes).toHaveLength(4);
+  });
+
+  it('should draw every node in detail when few are visible', () => {
+    // Act
+    const option = buildFlowOption(createGrid(4), { viewSize: VIEW_SIZE, renderer: 'canvas', overviewNodeCount: 10 });
+
+    // Assert
+    expect(findSeries(option, FLOW_OVERVIEW_SERIES_ID).data).toHaveLength(0);
+  });
+
+  it('should keep detail when the renderer is svg', () => {
+    // Act
+    const option = buildFlowOption(createGrid(4), { viewSize: VIEW_SIZE, renderer: 'svg', detailLevel: 'overview' });
+
+    // Assert
+    expect(getPayloads(option).node.nodes).toHaveLength(4);
+  });
+
+  it('should keep the selected node out of the batch when in overview', () => {
+    // Act
+    const option = buildFlowOption(createGrid(4), {
+      viewSize: VIEW_SIZE,
+      renderer: 'canvas',
+      detailLevel: 'overview',
+      selection: { nodeIds: ['n2'], edgeIds: [] },
+    });
+
+    // Assert
+    expect(getPayloads(option).node.nodes.map((node) => node.id)).toEqual(['n2']);
+  });
+
+  it('should keep nodes with gradient fills out of the batch when in overview', () => {
+    // Arrange
+    const graph = createGrid(2);
+    graph.nodes[0].style = { fill: { type: 'linear', angle: 90, stops: [{ offset: 0, color: '#fff' }, { offset: 1, color: '#000' }] } };
+
+    // Act
+    const option = buildFlowOption(graph, { viewSize: VIEW_SIZE, renderer: 'canvas', detailLevel: 'overview' });
+
+    // Assert
+    expect(getPayloads(option).node.nodes.map((node) => node.id)).toEqual(['n0']);
   });
 });
 
