@@ -47,9 +47,9 @@ First release.
   import and export (`fromDrawio`, `toDrawio`).
 - Sharp text: whole-pixel text and strokes, even line heights, and
   `watchDevicePixelRatio` for browser zoom and display changes.
-- Large graph performance: transformed pan and zoom frames, a CSS-moved bitmap
-  above 250 nodes, eased wheel zoom, a tiled background grid, view culling and
-  hover redraws that wait for the pointer to rest on slow scenes.
+- Large graph performance: transformed pan and zoom frames, eased wheel zoom,
+  a tiled background grid, view culling and hover redraws that wait for the
+  pointer to rest on slow scenes.
 - Labels are drawn at every zoom level; `minLabelPixels` skips labels below a
   chosen on-screen size.
 
