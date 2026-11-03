@@ -42,10 +42,12 @@ body {
 }
 
 .lang-switch__select {
-  padding: 4px 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 4px 26px 4px 8px;
   font-size: 13px;
   color: #1f2329;
-  background: #ffffff;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23646a73' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
   border: 1px solid #d0d3d6;
   border-radius: 6px;
   cursor: pointer;

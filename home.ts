@@ -1,60 +1,75 @@
+import { init, use } from 'echarts/core';
+import { CustomChart } from 'echarts/charts';
+import { CanvasRenderer } from 'echarts/renderers';
+import { buildFlowOption, calcFitViewport, flowExtension, watchDevicePixelRatio, type FlowGraph, type FlowThemeName } from './src/index';
 import { setupLayout } from './shared/layout';
+import { initTheme, currentThemeChoice, onThemeChange, resolvedTheme } from './shared/theme';
 import { onLocaleChange, type Locale, type Messages } from './shared/i18n';
 
+use([CustomChart, CanvasRenderer, flowExtension]);
 const messages: Messages = {
   zh: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: '基于 ECharts 6 自定义系列的可编辑流程图与泳道图扩展，原生 TypeScript，Canvas 与 SVG 双渲染。',
     ctaEditor: '打开在线编辑器',
     ctaDocs: '阅读文档',
+    heroChartNote: '真实渲染：本图由 buildFlowOption 绘制，主题跟随页面明暗模式。',
   },
   en: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'An editable flowchart and swimlane extension for ECharts 6, built on custom series. Native TypeScript, Canvas and SVG.',
     ctaEditor: 'Open the live editor',
     ctaDocs: 'Read the docs',
+    heroChartNote: 'Rendered live by buildFlowOption; the theme follows the page light/dark mode.',
   },
   es: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'Una extensión editable de diagramas de flujo y carriles para ECharts 6, basada en series personalizadas. TypeScript nativo, Canvas y SVG.',
     ctaEditor: 'Abrir el editor en vivo',
     ctaDocs: 'Leer la documentación',
+    heroChartNote: 'Renderizado en vivo con buildFlowOption; el tema sigue el modo claro/oscuro de la página.',
   },
   fr: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'Une extension éditable d’organigrammes et de couloirs (swimlanes) pour ECharts 6, basée sur des séries personnalisées. TypeScript natif, Canvas et SVG.',
     ctaEditor: 'Ouvrir l’éditeur en direct',
     ctaDocs: 'Lire la documentation',
+    heroChartNote: 'Rendu en direct par buildFlowOption ; le thème suit le mode clair/sombre de la page.',
   },
   de: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'Eine bearbeitbare Flussdiagramm- und Swimlane-Erweiterung für ECharts 6 auf Basis eigener Serien. Natives TypeScript, Canvas und SVG.',
     ctaEditor: 'Live-Editor öffnen',
     ctaDocs: 'Dokumentation lesen',
+    heroChartNote: 'Live gerendert mit buildFlowOption; das Thema folgt dem Hell-/Dunkelmodus der Seite.',
   },
   pt: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'Uma extensão editável de fluxogramas e raias (swimlanes) para ECharts 6, baseada em séries personalizadas. TypeScript nativo, Canvas e SVG.',
     ctaEditor: 'Abrir o editor ao vivo',
     ctaDocs: 'Ler a documentação',
+    heroChartNote: 'Renderizado ao vivo com buildFlowOption; o tema segue o modo claro/escuro da página.',
   },
   ja: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'ECharts 6 のカスタムシリーズに基づく、編集可能なフローチャート・スイムレーン拡張。ネイティブ TypeScript、Canvas と SVG に対応。',
     ctaEditor: 'ライブエディタを開く',
     ctaDocs: 'ドキュメントを読む',
+    heroChartNote: 'buildFlowOption によるライブ描画。テーマはページの明暗モードに追従します。',
   },
   ar: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'إضافة قابلة للتحرير للمخططات الانسيابية والممرات لمكتبة ECharts 6، مبنية على سلاسل مخصصة. TypeScript أصلي مع Canvas و SVG.',
     ctaEditor: 'افتح المحرر المباشر',
     ctaDocs: 'اقرأ التوثيق',
+    heroChartNote: 'رسم حي عبر buildFlowOption؛ تتبع السمة وضع الصفحة الفاتح/الداكن.',
   },
   it: {
     heroBadge: 'v0.1.0 · Apache-2.0',
     heroTagline: 'Un’estensione modificabile per diagrammi di flusso e corsie (swimlane) per ECharts 6, basata su serie personalizzate. TypeScript nativo, Canvas e SVG.',
     ctaEditor: 'Apri l’editor dal vivo',
     ctaDocs: 'Leggi la documentazione',
+    heroChartNote: 'Rendering dal vivo con buildFlowOption; il tema segue la modalità chiaro/scuro della pagina.',
   },
 };
 
@@ -175,6 +190,69 @@ if (grid) {
       title.textContent = feature.text[locale].title;
       desc.textContent = feature.text[locale].desc;
     });
+  });
+}
+
+/** A small approval flow for the hero; node labels follow the page locale. */
+const HERO_LABELS: Record<Locale, Record<'start' | 'review' | 'ok' | 'fix' | 'pay' | 'end' | 'no' | 'yes', string>> = {
+  zh: { start: '开始', review: '审核材料', ok: '是否通过?', fix: '补充材料', pay: '发放奖励', end: '结束', no: '否', yes: '是' },
+  en: { start: 'Start', review: 'Review documents', ok: 'Approved?', fix: 'Provide more info', pay: 'Grant reward', end: 'End', no: 'No', yes: 'Yes' },
+  es: { start: 'Inicio', review: 'Revisar documentos', ok: '¿Aprobado?', fix: 'Aportar más datos', pay: 'Entregar premio', end: 'Fin', no: 'No', yes: 'Sí' },
+  fr: { start: 'Début', review: 'Examiner les pièces', ok: 'Approuvé ?', fix: 'Compléter le dossier', pay: 'Verser la prime', end: 'Fin', no: 'Non', yes: 'Oui' },
+  de: { start: 'Start', review: 'Unterlagen prüfen', ok: 'Freigegeben?', fix: 'Unterlagen ergänzen', pay: 'Prämie auszahlen', end: 'Ende', no: 'Nein', yes: 'Ja' },
+  pt: { start: 'Início', review: 'Analisar documentos', ok: 'Aprovado?', fix: 'Completar dados', pay: 'Conceder prêmio', end: 'Fim', no: 'Não', yes: 'Sim' },
+  ja: { start: '開始', review: '書類を審査', ok: '承認済み？', fix: '書類を補足', pay: '報酬を交付', end: '終了', no: 'いいえ', yes: 'はい' },
+  ar: { start: 'البداية', review: 'مراجعة المستندات', ok: 'هل تمت الموافقة؟', fix: 'استكمال المستندات', pay: 'صرف المكافأة', end: 'النهاية', no: 'لا', yes: 'نعم' },
+  it: { start: 'Inizio', review: 'Esamina documenti', ok: 'Approvato?', fix: 'Integra documenti', pay: 'Eroga premio', end: 'Fine', no: 'No', yes: 'Sì' },
+};
+
+function buildHeroGraph(locale: Locale): FlowGraph {
+  const label = HERO_LABELS[locale];
+  return {
+    nodes: [
+      { id: 'start', label: label.start, shape: 'start' },
+      { id: 'review', label: label.review, shape: 'process' },
+      { id: 'ok', label: label.ok, shape: 'decision' },
+      { id: 'fix', label: label.fix, shape: 'io' },
+      { id: 'pay', label: label.pay, shape: 'process' },
+      { id: 'end', label: label.end, shape: 'end' },
+    ],
+    edges: [
+      { id: 'e1', source: 'start', target: 'review' },
+      { id: 'e2', source: 'review', target: 'ok' },
+      { id: 'e3', source: 'ok', target: 'fix', label: label.no },
+      { id: 'e4', source: 'fix', target: 'review' },
+      { id: 'e5', source: 'ok', target: 'pay', label: label.yes },
+      { id: 'e6', source: 'pay', target: 'end' },
+    ],
+  };
+}
+
+const heroContainer = document.getElementById('hero-chart');
+if (heroContainer) {
+  initTheme();
+  const heroChart = init(heroContainer);
+  // The locale is final after setupLayout below, so start empty and render on
+  // the first locale callback (it also fires for theme changes via onThemeChange).
+  let heroLocale: Locale = 'zh';
+
+  /** The canvas theme and node labels follow the page's locale and light/dark mode. */
+  function renderHeroChart(): void {
+    const heroTheme: FlowThemeName = resolvedTheme(currentThemeChoice()) === 'dark' ? 'aurora-dark' : 'aurora';
+    const graph = buildHeroGraph(heroLocale);
+    const viewport = calcFitViewport(graph, heroChart.getWidth(), heroChart.getHeight());
+    heroChart.setOption(buildFlowOption(graph, { viewport, theme: heroTheme, pixelRatio: heroChart.getDevicePixelRatio() }));
+  }
+
+  onLocaleChange((locale) => {
+    heroLocale = locale;
+    renderHeroChart();
+  });
+  watchDevicePixelRatio(heroChart, renderHeroChart);
+  onThemeChange(renderHeroChart);
+  window.addEventListener('resize', () => {
+    heroChart.resize();
+    renderHeroChart();
   });
 }
 

@@ -6,6 +6,26 @@
  */
 
 import { setupI18n, mergeMessages, type Locale, type Messages } from './i18n';
+import { initTheme, mountThemeSwitch } from './theme';
+
+/** Tooltips for the dark-mode toggle, in every site language. */
+const THEME_TITLES: Record<'light' | 'dark' | 'system', Record<Locale, string>> = {
+  light: {
+    zh: '当前：浅色，点击切换到暗色', en: 'Current: light, click for dark', es: 'Actual: claro, clic para oscuro',
+    fr: 'Actuel : clair, cliquer pour sombre', de: 'Aktuell: Hell, Klick für Dunkel', pt: 'Atual: claro, clique para escuro',
+    ja: '現在：ライト、クリックでダーク', ar: 'الحالي: فاتح، انقر للتبديل إلى الداكن', it: 'Attuale: chiaro, clic per scuro',
+  },
+  dark: {
+    zh: '当前：暗色，点击跟随系统', en: 'Current: dark, click for system', es: 'Actual: oscuro, clic para sistema',
+    fr: 'Actuel : sombre, cliquer pour système', de: 'Aktuell: Dunkel, Klick für System', pt: 'Atual: escuro, clique para sistema',
+    ja: '現在：ダーク、クリックでシステムに従う', ar: 'الحالي: داكن، انقر للتبديل إلى النظام', it: 'Attuale: scuro, clic per sistema',
+  },
+  system: {
+    zh: '当前：跟随系统，点击切换到浅色', en: 'Current: system, click for light', es: 'Actual: sistema, clic para claro',
+    fr: 'Actuel : système, cliquer pour clair', de: 'Aktuell: System, Klick für Hell', pt: 'Atual: sistema, clique para claro',
+    ja: '現在：システムに従う、クリックでライト', ar: 'الحالي: النظام، انقر للتبديل إلى الفاتح', it: 'Attuale: sistema, clic per chiaro',
+  },
+};
 
 export type SiteSection = 'home' | 'docs' | 'examples' | 'editor' | 'cases';
 
@@ -184,6 +204,7 @@ export function setupLayout(active: SiteSection, prefix: string, pageMessages: M
     header.innerHTML = `<nav class="site-nav">
   <a class="site-nav__brand" href="${prefix}">echarts-flow</a>
   <div class="site-nav__links">${links}<a class="site-nav__link" href="https://github.com/diysimon/echarts-flow">GitHub</a></div>
+  <span data-theme-switch></span>
   <span data-lang-switch></span>
 </nav>`;
   }
@@ -219,5 +240,15 @@ export function setupLayout(active: SiteSection, prefix: string, pageMessages: M
   </div>
 </footer>`;
   }
-  return setupI18n(messages, switchSelector);
+  const resolvedLocale = setupI18n(messages, switchSelector);
+  // The theme choice must apply on every page using the shared layout, not only
+  // the home page; the hero chart additionally listens for theme flips.
+  initTheme();
+  // After setupI18n the locale is final, so the toggle tooltip matches the page.
+  mountThemeSwitch({
+    light: THEME_TITLES.light[resolvedLocale],
+    dark: THEME_TITLES.dark[resolvedLocale],
+    system: THEME_TITLES.system[resolvedLocale],
+  });
+  return resolvedLocale;
 }

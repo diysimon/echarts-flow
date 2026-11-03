@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>echarts-flow</title>
     <link rel="stylesheet" href="./shared/site.css" />
+    <script>
+      // Set data-theme before first paint so dark mode never flashes light.
+      (function () {
+        try {
+          var stored = localStorage.getItem('echarts-flow-theme');
+          var dark = stored === 'dark' || (stored !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.dataset.theme = 'dark';
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <header data-site-header></header>
@@ -20,6 +30,10 @@
       <div class="hero__code">
         <pre><code>npm install echarts-flow echarts</code></pre>
       </div>
+      <div class="hero__chart">
+        <div class="hero__chart-inner" id="hero-chart"></div>
+      </div>
+      <p class="hero__chart-note" data-i18n="heroChartNote">真实渲染：本图由 buildFlowOption 绘制，主题跟随页面明暗模式。</p>
     </header>
 
     <main class="site-main">

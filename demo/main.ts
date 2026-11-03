@@ -4,6 +4,7 @@ import { CanvasRenderer, SVGRenderer } from 'echarts/renderers';
 import { FlowEditor, flowExtension, type FlowGraph, type FlowNodeShape, type FlowStatus, type FlowThemeName } from '../src/index';
 import { APPROVAL_GRAPH } from './sampleGraph';
 import { setupLayout } from '../shared/layout';
+import { currentThemeChoice, resolvedTheme } from '../shared/theme';
 import { onLocaleChange, type Messages } from '../shared/i18n';
 
 use([CustomChart, CanvasRenderer, SVGRenderer, flowExtension]);
@@ -33,7 +34,8 @@ const redoButton = getElement<HTMLButtonElement>('#redo-button');
 const editableToggle = getElement<HTMLInputElement>('#editable-toggle');
 
 const chart = init(chartContainer, null, { renderer: getDemoRenderer() });
-const editor = new FlowEditor(chart, { graph: APPROVAL_GRAPH, onChange: updatePanel });
+const initialDemoTheme: FlowThemeName = resolvedTheme(currentThemeChoice()) === 'dark' ? 'aurora-dark' : 'aurora';
+const editor = new FlowEditor(chart, { graph: APPROVAL_GRAPH, theme: initialDemoTheme, onChange: updatePanel });
 
 function updatePanel(graph: FlowGraph = editor.getGraph()): void {
   jsonOutput.textContent = JSON.stringify(graph, null, 2);
@@ -103,6 +105,8 @@ getElement<HTMLElement>('.flow-demo__toolbar').addEventListener('click', handleT
 editableToggle.addEventListener('change', () => editor.setEditable(editableToggle.checked));
 const themeSelect = getElement<HTMLSelectElement>('#theme-select');
 themeSelect.addEventListener('change', () => editor.setTheme(themeSelect.value as FlowThemeName));
+// The select shows the chart's initial theme (it only reacts to reloads or the select).
+themeSelect.value = initialDemoTheme;
 const rendererSelect = getElement<HTMLSelectElement>('#renderer-select');
 rendererSelect.value = getDemoRenderer();
 // ECharts fixes the renderer at init, so switching reloads the page with the new choice.
