@@ -77,6 +77,7 @@ function mountRendererSwitch(): void {
   label.textContent = t('renderer');
   label.setAttribute('data-i18n', 'renderer');
   group.append(label);
+  const optionLinks: Array<{ option: HTMLAnchorElement; renderer: CaseRenderer }> = [];
   (Object.keys(RENDERER_LABELS) as CaseRenderer[]).forEach((renderer) => {
     const isActive = renderer === current;
     const option = document.createElement('a');
@@ -87,9 +88,17 @@ function mountRendererSwitch(): void {
       option.setAttribute('aria-current', 'true');
     }
     group.append(option);
+    optionLinks.push({ option, renderer });
   });
   const host = nav.querySelector('.case__nav-actions') ?? nav;
   host.append(group);
+  // The hrefs bake in the URL at mount time, but a language switch rewrites
+  // ?lang in place; refresh them so a renderer reload keeps the new language.
+  onLocaleChange(() => {
+    optionLinks.forEach(({ option, renderer }) => {
+      option.href = buildRendererHref(renderer);
+    });
+  });
 }
 
 /** Creates a chart with the renderer picked in the page's renderer switch. */
