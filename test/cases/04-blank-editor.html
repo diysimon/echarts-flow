@@ -6,9 +6,9 @@
     <link rel="stylesheet" href="./shared/cases.css" />
   </head>
   <body>
-    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
-    <h1 class="case__title">04 从空白画布编辑</h1>
-    <p class="case__desc">
+    <nav class="case__nav"><a href="./index.html" data-i18n="backToList">← 用例列表</a><span class="case__nav-actions"><span data-lang-switch></span></span></nav>
+    <h1 class="case__title" data-i18n="title">04 从空白画布编辑</h1>
+    <p class="case__desc" data-i18n-html="desc">
       编辑器初始没有任何节点。用按钮添加节点（落在可见区域中心，重叠时自动错开），
       悬停节点后从圆点拖出连线，双击改文字，Shift 点击多选后可以用"连接所选"按钮通过 API 连线。
       按住 Shift 拖空白处框选；Cmd/Ctrl + A / C / X / V / D 全选、复制、剪切、粘贴、复制一份；方向键微调（Shift 一次 10 格）；
@@ -16,22 +16,22 @@
       右侧记录 <code>onChange</code> 和 <code>onSelectionChange</code> 回调。
     </p>
     <div class="case__toolbar">
-      <button class="case__button" type="button" data-shape="start">+ 开始</button>
-      <button class="case__button" type="button" data-shape="process">+ 处理</button>
-      <button class="case__button" type="button" data-shape="decision">+ 判断</button>
-      <button class="case__button" type="button" data-shape="io">+ 输入/输出</button>
-      <button class="case__button" type="button" data-shape="end">+ 结束</button>
-      <button class="case__button" id="connect-button" type="button">连接所选两个节点</button>
-      <button class="case__button" id="undo-button" type="button">撤销</button>
-      <button class="case__button" id="redo-button" type="button">重做</button>
-      <button class="case__button" id="delete-button" type="button">删除所选</button>
-      <button class="case__button" id="layout-button" type="button">自动布局</button>
-      <button class="case__button" id="clear-button" type="button">清空</button>
+      <button class="case__button" type="button" data-shape="start" data-i18n="btnAddStart">+ 开始</button>
+      <button class="case__button" type="button" data-shape="process" data-i18n="btnAddProcess">+ 处理</button>
+      <button class="case__button" type="button" data-shape="decision" data-i18n="btnAddDecision">+ 判断</button>
+      <button class="case__button" type="button" data-shape="io" data-i18n="btnAddIo">+ 输入/输出</button>
+      <button class="case__button" type="button" data-shape="end" data-i18n="btnAddEnd">+ 结束</button>
+      <button class="case__button" id="connect-button" type="button" data-i18n="btnConnectSelected">连接所选两个节点</button>
+      <button class="case__button" id="undo-button" type="button" data-i18n="btnUndo">撤销</button>
+      <button class="case__button" id="redo-button" type="button" data-i18n="btnRedo">重做</button>
+      <button class="case__button" id="delete-button" type="button" data-i18n="btnDeleteSelected">删除所选</button>
+      <button class="case__button" id="layout-button" type="button" data-i18n="btnAutoLayout">自动布局</button>
+      <button class="case__button" id="clear-button" type="button" data-i18n="btnClear">清空</button>
     </div>
     <div class="case__layout">
       <section class="case__chart" id="chart"></section>
       <aside class="case__side">
-        <span class="case__label">回调日志</span>
+        <span class="case__label" data-i18n="labelCallbackLog">回调日志</span>
         <pre class="case__log" id="log"></pre>
       </aside>
     </div>

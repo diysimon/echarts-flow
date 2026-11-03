@@ -1,5 +1,7 @@
 import { createFlowTheme, FlowEditor, resolveFlowTheme, type FlowEdge, type FlowGraph, type FlowNode, type FlowThemeName } from '../../src/index';
-import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('11-swimlane-vertical');
+
 
 type NodeSpec = [id: string, label: string, shape: FlowNode['shape'], laneId: string];
 type EdgeSpec = [source: string, target: string, label?: string];

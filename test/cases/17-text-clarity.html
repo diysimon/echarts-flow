@@ -12,9 +12,9 @@
     </style>
   </head>
   <body>
-    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
-    <h1 class="case__title">17 文字清晰度诊断</h1>
-    <p class="case__desc">
+    <nav class="case__nav"><a href="./index.html" data-i18n="backToList">← 用例列表</a><span class="case__nav-actions"><span data-lang-switch></span></span></nav>
+    <h1 class="case__title" data-i18n="title">17 文字清晰度诊断</h1>
+    <p class="case__desc" data-i18n-html="desc">
       同一段文字分别用 DOM、SVG 和几种 Canvas 方式绘制，不经过 ECharts。请在你自己的浏览器里（100% 缩放）对比，告诉我哪几行和 DOM 一样清楚、哪几行发虚。
     </p>
     <p class="case__stat" id="env"></p>

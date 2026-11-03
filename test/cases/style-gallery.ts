@@ -13,7 +13,9 @@ import {
   type FlowNodeStyle,
   type FlowThemeName,
 } from '../../src/index';
-import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('12-style-gallery');
+
 
 const SHAPES: FlowNodeShape[] = ['start', 'end', 'process', 'decision', 'io', 'circle', 'hexagon', 'document', 'database', 'subprocess', 'text'];
 const ARROWS: ArrowType[] = ['triangle', 'triangle-open', 'vee', 'circle', 'circle-open', 'diamond', 'diamond-open', 'none'];

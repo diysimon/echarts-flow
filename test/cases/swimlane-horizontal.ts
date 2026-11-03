@@ -1,5 +1,7 @@
 import { FlowEditor, type FlowGraph } from '../../src/index';
-import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('10-swimlane-horizontal');
+
 
 const LANE_SIZE = 180;
 const GROW_STEP = 40;

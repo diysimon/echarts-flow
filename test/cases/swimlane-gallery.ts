@@ -1,5 +1,7 @@
 import { FlowEditor, type FlowDirection, type FlowThemeName } from '../../src/index';
-import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('13-swimlane-gallery');
+
 import { SWIMLANE_SCENARIOS, type SwimlaneScenario } from './shared/swimlaneScenarios';
 
 const scenarioSelect = getElement<HTMLSelectElement>('#scenario-select');

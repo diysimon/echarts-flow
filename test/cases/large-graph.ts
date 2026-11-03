@@ -1,5 +1,7 @@
 import { calcFlowLayout, FlowEditor, type FlowEdge, type FlowGraph, type FlowNode, type FlowNodeShape } from '../../src/index';
-import { getElement, initCaseChart } from './shared/caseUtils';
+import { getElement, initCaseChart, onLocaleChange, setupCasePage, t } from './shared/caseUtils';
+
+setupCasePage('07-large-graph');
 
 /** Every n-th node gets a second outgoing edge, giving about 1.3 edges per node. */
 const EXTRA_EDGE_INTERVAL = 3;
@@ -30,6 +32,19 @@ const statsLabel = getElement<HTMLElement>('#stats');
 const chart = initCaseChart(getElement<HTMLElement>('#chart'));
 const editor = new FlowEditor(chart);
 
+let lastStats: { nodes: number; edges: number; layoutTime: number; renderTime: number } | null = null;
+
+function writeStats(): void {
+  if (!lastStats) {
+    return;
+  }
+  statsLabel.textContent = `${lastStats.nodes} ${t('unitNodes')} / ${lastStats.edges} ${t('unitEdges')}`
+    + `${t('unitSep')}${t('unitLayout')} ${lastStats.layoutTime.toFixed(0)}ms`
+    + `${t('unitSep')}${t('unitRender')} ${lastStats.renderTime.toFixed(0)}ms`;
+}
+
+onLocaleChange(writeStats);
+
 function loadGraph(nodeCount: number): void {
   const graph = generateGraph(nodeCount);
   const layoutStart = performance.now();
@@ -41,8 +56,8 @@ function loadGraph(nodeCount: number): void {
   editor.fitView();
   const renderTime = performance.now() - renderStart;
 
-  statsLabel.textContent = `${graph.nodes.length} 节点 / ${graph.edges.length} 连线，`
-    + `布局 ${layoutTime.toFixed(0)}ms，渲染 ${renderTime.toFixed(0)}ms`;
+  lastStats = { nodes: graph.nodes.length, edges: graph.edges.length, layoutTime, renderTime };
+  writeStats();
 }
 
 document.querySelectorAll<HTMLButtonElement>('[data-count]').forEach((button) => {

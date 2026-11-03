@@ -1,5 +1,7 @@
 import { buildFlowOption, calcFitViewport, watchDevicePixelRatio, type FlowEdge, type FlowGraph, type FlowNode, type FlowNodeShape, type FlowStatus } from '../../src/index';
-import { getElement, initCaseChart } from './shared/caseUtils';
+import { getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('02-shapes-and-status');
+
 
 const SHAPES: FlowNodeShape[] = ['start', 'process', 'decision', 'io', 'end'];
 const STATUSES: (FlowStatus | undefined)[] = [undefined, 'pending', 'running', 'done', 'error'];

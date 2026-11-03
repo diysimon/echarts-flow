@@ -1,5 +1,7 @@
 import { FlowEditor, type FlowDirection, type FlowGraph } from '../../src/index';
-import { getElement, initCaseChart } from './shared/caseUtils';
+import { getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('03-layout-direction');
+
 
 const RETRY_GRAPH: FlowGraph = {
   nodes: [

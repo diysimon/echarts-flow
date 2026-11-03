@@ -6,17 +6,17 @@
     <link rel="stylesheet" href="./shared/cases.css" />
   </head>
   <body>
-    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
-    <h1 class="case__title">09 主题</h1>
-    <p class="case__desc">
+    <nav class="case__nav"><a href="./index.html" data-i18n="backToList">← 用例列表</a><span class="case__nav-actions"><span data-lang-switch></span></span></nav>
+    <h1 class="case__title" data-i18n="title">09 主题</h1>
+    <p class="case__desc" data-i18n-html="desc">
       同一份数据分别使用 8 套内置主题：<code>light</code>（ECharts 6 默认色板）、<code>dark</code>（ECharts 6 暗色）、
       <code>macarons</code>（马卡龙）、<code>tech-blue</code>（科技蓝）、<code>aurora</code> / <code>aurora-dark</code>（现代极光）、<code>whiteboard</code>（白板）、<code>classic</code>（经典）。每张图都包含 5 种形状、4 种状态、
       一个选中节点和带标签的连线。点"放大"可以对比缩放后的文字清晰度。
     </p>
     <div class="case__toolbar">
-      <button class="case__button" id="zoom-in-button" type="button">全部放大</button>
-      <button class="case__button" id="zoom-out-button" type="button">全部缩小</button>
-      <button class="case__button" id="fit-button" type="button">全部适应画布</button>
+      <button class="case__button" id="zoom-in-button" type="button" data-i18n="btnZoomAllIn">全部放大</button>
+      <button class="case__button" id="zoom-out-button" type="button" data-i18n="btnZoomAllOut">全部缩小</button>
+      <button class="case__button" id="fit-button" type="button" data-i18n="btnFitAll">全部适应画布</button>
     </div>
     <div class="case__grid">
       <section class="case__chart case__chart--short" data-theme="light"></section>

@@ -1,6 +1,8 @@
 import { init } from 'echarts/core';
 import { FlowEditor, type FlowGraph } from '../../src/index';
-import { bindButton, getElement } from './shared/caseUtils';
+import { bindButton, getElement, setupCasePage } from './shared/caseUtils';
+setupCasePage('08-multi-instance');
+
 
 const LEAVE_GRAPH: FlowGraph = {
   nodes: [

@@ -40,7 +40,9 @@ async function openCase(page: Page, name: string, renderer: string): Promise<str
     }
   });
   await page.clock.install({ time: CLOCK_START });
-  await page.goto(`/test/cases/${name}.html?renderer=${renderer}`);
+  // Pin the Chinese locale: Playwright browsers default to en-US, and the
+  // zh rendering is what the baselines compare against.
+  await page.goto(`/test/cases/${name}.html?lang=zh&renderer=${renderer}`);
   await page.clock.runFor(SETTLE_TIME);
   return errors;
 }

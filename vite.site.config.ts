@@ -84,8 +84,10 @@ export default defineConfig({
         examples: resolve(root, 'examples/index.html'),
         // The interactive editor demo, linked from the site as the live editor.
         editor: resolve(root, 'editor.html'),
-        // Live case pages the examples link to.
-        ...Object.fromEntries(casePages.map((file) => [`cases/${file.replace('.html', '')}`, resolve(root, 'test/cases', file)])),
+        // Live case pages the examples link to. Keys keep the dev-server paths
+        // (`test/cases/…`), so relative links between cases and the site root
+        // behave the same in dev and in the built site.
+        ...Object.fromEntries(casePages.map((file) => [`test/cases/${file.replace('.html', '')}`, resolve(root, 'test/cases', file)])),
       },
     },
   },

@@ -6,16 +6,16 @@
     <link rel="stylesheet" href="./shared/cases.css" />
   </head>
   <body>
-    <nav class="case__nav"><a href="./index.html">← 用例列表</a></nav>
-    <h1 class="case__title">15 Aurora 现代主题</h1>
-    <p class="case__desc">
+    <nav class="case__nav"><a href="./index.html" data-i18n="backToList">← 用例列表</a><span class="case__nav-actions"><span data-lang-switch></span></span></nav>
+    <h1 class="case__title" data-i18n="title">15 Aurora 现代主题</h1>
+    <p class="case__desc" data-i18n-html="desc">
       <code>aurora</code> 与 <code>aurora-dark</code>：克制的产品界面风格。近白（或近黑）画布上一层很淡的光晕，
       白色（或深灰）卡片配细边框和柔和阴影；开始是实心靛蓝药丸，结束是墨黑（暗色下反白）药丸，
       判断、数据、输入输出用浅色底加同色边框区分，不再用大面积渐变。选中时外圈光环，悬停时阴影抬升。悬停或点选节点查看交互效果。
     </p>
     <div class="case__toolbar">
-      <button class="case__button" id="run-button" type="button">模拟运行</button>
-      <button class="case__button" id="fit-button" type="button">适应画布</button>
+      <button class="case__button" id="run-button" type="button" data-i18n="btnSimulate">模拟运行</button>
+      <button class="case__button" id="fit-button" type="button" data-i18n="btnFit">适应画布</button>
     </div>
     <section class="case__chart case__chart--showcase" id="chart-light"></section>
     <section class="case__chart case__chart--showcase" id="chart-dark"></section>

@@ -1,29 +1,32 @@
 import { DEFAULT_EDIT_OPTIONS, FlowEditor, type FlowEditOptions, type FlowGraph, type FlowSelection } from '../../src/index';
-import { bindButton, createLogger, getElement, initCaseChart } from './shared/caseUtils';
+import { bindButton, createLogger, getElement, initCaseChart, setupCasePage, t } from './shared/caseUtils';
+
+setupCasePage('14-edit-options');
+
 
 type BooleanOption = {
   [K in keyof FlowEditOptions]-?: FlowEditOptions[K] extends boolean ? K : never;
 }[keyof FlowEditOptions];
 type NumberOption = 'gridSize' | 'minZoom' | 'maxZoom' | 'wheelZoomSpeed' | 'alignThreshold';
 
-const FLAG_LABELS: Record<BooleanOption, string> = {
-  isEnabled: '启用编辑（总开关）',
-  canSelect: '选择',
-  canMultiSelect: '多选',
-  canMoveNodes: '拖动节点',
-  canConnect: '拖线连接',
-  canEditLabels: '双击改文字',
-  canDelete: '键盘删除',
-  canUndo: '撤销快捷键',
-  canChangeLane: '拖入泳道换道',
-  canPan: '拖动画布平移',
-  canZoom: '滚轮缩放',
-  canBoxSelect: '框选',
-  canCopyPaste: '复制粘贴',
-  canReconnect: '拖连线端点改接',
-  shouldShowAlignGuides: '对齐参考线',
-  hasKeyboardShortcuts: '键盘快捷键',
-  shouldSnapToGrid: '吸附网格',
+const FLAG_KEYS: Record<BooleanOption, string> = {
+  isEnabled: 'flagEnabled',
+  canSelect: 'flagSelect',
+  canMultiSelect: 'flagMultiSelect',
+  canMoveNodes: 'flagMoveNodes',
+  canConnect: 'flagConnect',
+  canEditLabels: 'flagEditLabels',
+  canDelete: 'flagDelete',
+  canUndo: 'flagUndo',
+  canChangeLane: 'flagChangeLane',
+  canPan: 'flagPan',
+  canZoom: 'flagZoom',
+  canBoxSelect: 'flagBoxSelect',
+  canCopyPaste: 'flagCopyPaste',
+  canReconnect: 'flagReconnect',
+  shouldShowAlignGuides: 'flagAlignGuides',
+  hasKeyboardShortcuts: 'flagShortcuts',
+  shouldSnapToGrid: 'flagSnapGrid',
 };
 const NUMBER_STEPS: Record<NumberOption, number> = { gridSize: 5, minZoom: 0.1, maxZoom: 0.1, wheelZoomSpeed: 0.0005, alignThreshold: 1 };
 const MAX_DECISION_OUTPUTS = 2;
@@ -103,7 +106,7 @@ function syncControls(): void {
 
 function buildControls(): void {
   const flagList = getElement<HTMLElement>('#flag-list');
-  (Object.keys(FLAG_LABELS) as BooleanOption[]).forEach((key) => {
+  (Object.keys(FLAG_KEYS) as BooleanOption[]).forEach((key) => {
     const label = document.createElement('label');
     const input = document.createElement('input');
     input.type = 'checkbox';
@@ -111,7 +114,12 @@ function buildControls(): void {
       editor.setEditOptions({ [key]: input.checked });
       log(`setEditOptions({ ${key}: ${input.checked} })`);
     });
-    label.append(input, ` ${FLAG_LABELS[key]}`);
+    // The leading space lives in the message (shared by every locale) so the
+    // checkbox keeps its gap; data-i18n keeps the label in sync on switch.
+    const text = document.createElement('span');
+    text.textContent = t(FLAG_KEYS[key]);
+    text.setAttribute('data-i18n', FLAG_KEYS[key]);
+    label.append(input, text);
     flagList.appendChild(label);
     flagInputs.set(key, input);
   });

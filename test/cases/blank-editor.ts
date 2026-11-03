@@ -1,5 +1,7 @@
 import { FlowEditor, type FlowNodeShape } from '../../src/index';
-import { bindButton, createLogger, getElement, initCaseChart } from './shared/caseUtils';
+import { bindButton, createLogger, getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('04-blank-editor');
+
 
 const REQUIRED_SELECTION_COUNT = 2;
 

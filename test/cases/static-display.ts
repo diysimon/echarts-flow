@@ -1,5 +1,7 @@
 import { buildFlowOption, calcFitViewport, watchDevicePixelRatio, type FlowGraph, type FlowHitInfo } from '../../src/index';
-import { createLogger, getElement, initCaseChart } from './shared/caseUtils';
+import { createLogger, getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('01-static-display');
+
 
 const ORDER_GRAPH: FlowGraph = {
   nodes: [

@@ -2,6 +2,10 @@ import { init, use, type EChartsType } from 'echarts/core';
 import { CustomChart } from 'echarts/charts';
 import { CanvasRenderer, SVGRenderer } from 'echarts/renderers';
 import { flowExtension } from '../../../src/index';
+import { CASE_CHROME, CASE_META } from './caseCatalog';
+import { LOCALES, mergeMessages, onLocaleChange, setupI18n, type Locale, type Messages } from '../../../shared/i18n';
+
+export { onLocaleChange };
 
 use([CustomChart, CanvasRenderer, SVGRenderer, flowExtension]);
 
@@ -13,6 +17,33 @@ export type CaseRenderer = 'canvas' | 'svg';
 const RENDERER_LABELS: Record<CaseRenderer, string> = { canvas: 'Canvas', svg: 'SVG' };
 
 let isRendererSwitchMounted = false;
+let activeLocale: Locale = 'zh';
+let activeMessages: Messages = CASE_CHROME;
+
+/** Returns the message for `key` in the page's active locale (the key itself as fallback). */
+export function t(key: string): string {
+  return activeMessages[activeLocale]?.[key] ?? key;
+}
+
+/**
+ * Boots a case page's i18n: merges the shared chrome dictionary with the
+ * page's own messages, fills the DOM, mounts the language switch and keeps the
+ * document title and {@link t} in sync. Must run before {@link initCaseChart}.
+ */
+export function setupCasePage(pageKey: string, pageMessages?: Messages): void {
+  const meta = CASE_META.find((entry) => entry.page === pageKey);
+  const metaMessages = meta
+    ? (Object.fromEntries(LOCALES.map((locale) => [locale, { title: meta.title[locale], desc: meta.desc[locale] }])) as unknown as Messages)
+    : ({} as Messages);
+  activeMessages = mergeMessages(CASE_CHROME, metaMessages, pageMessages ?? ({} as Messages));
+  setupI18n(activeMessages);
+  onLocaleChange((locale) => {
+    activeLocale = locale;
+    if (meta) {
+      document.title = `${meta.title[locale]} - echarts-flow`;
+    }
+  });
+}
 
 /** Renderer chosen with `?renderer=svg` in the page URL; Canvas by default. */
 export function getCaseRenderer(): CaseRenderer {
@@ -39,8 +70,13 @@ function mountRendererSwitch(): void {
   const group = document.createElement('span');
   group.className = 'case__renderer';
   group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', '渲染器');
-  group.append('渲染器');
+  group.setAttribute('aria-label', t('renderer'));
+  group.setAttribute('data-i18n-attr', 'aria-label:renderer');
+  const label = document.createElement('span');
+  label.className = 'case__renderer-label';
+  label.textContent = t('renderer');
+  label.setAttribute('data-i18n', 'renderer');
+  group.append(label);
   (Object.keys(RENDERER_LABELS) as CaseRenderer[]).forEach((renderer) => {
     const isActive = renderer === current;
     const option = document.createElement('a');
@@ -52,7 +88,8 @@ function mountRendererSwitch(): void {
     }
     group.append(option);
   });
-  nav.append(group);
+  const host = nav.querySelector('.case__nav-actions') ?? nav;
+  host.append(group);
 }
 
 /** Creates a chart with the renderer picked in the page's renderer switch. */

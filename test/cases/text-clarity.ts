@@ -1,4 +1,6 @@
-import { getElement } from './shared/caseUtils';
+import { getElement, setupCasePage } from './shared/caseUtils';
+setupCasePage('17-text-clarity');
+
 
 const SAMPLE_TEXT = '开始 提交申请 审批 驳回 Approve 123';
 const SAMPLE_WIDTH = 300;

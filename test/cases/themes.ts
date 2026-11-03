@@ -1,5 +1,7 @@
 import { FlowEditor, type FlowGraph, type FlowThemeName } from '../../src/index';
-import { bindButton, initCaseChart } from './shared/caseUtils';
+import { bindButton, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('09-themes');
+
 
 const SHOWCASE_GRAPH: FlowGraph = {
   nodes: [

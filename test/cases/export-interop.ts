@@ -1,5 +1,7 @@
 import { FlowEditor, fromDrawio, fromMermaid, type FlowDirection, type FlowGraph, type ImportedFlow } from '../../src/index';
-import { bindButton, getElement, initCaseChart } from './shared/caseUtils';
+import { bindButton, getElement, initCaseChart, setupCasePage } from './shared/caseUtils';
+setupCasePage('16-export-interop');
+
 
 type TextFormat = 'mermaid' | 'drawio';
 
