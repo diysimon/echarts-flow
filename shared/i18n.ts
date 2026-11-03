@@ -1,17 +1,48 @@
 /**
- * Framework-free bilingual (and future multi-language) layer for the static
- * site. One source of truth per page: a dictionary keyed by locale. Markup
- * carries `data-i18n` keys; this module fills them for the active locale and
- * renders a language switch. Adding a language means adding a column to the
- * dictionaries and an entry to {@link LOCALES}; no page markup changes.
+ * Framework-free multi-language layer for the static site. One source of truth
+ * per page: a dictionary keyed by locale. Markup carries `data-i18n` keys; this
+ * module fills them for the active locale and renders a language switch.
+ * Adding a language means adding a column to the dictionaries and an entry to
+ * {@link LOCALES}; no page markup changes.
  */
 
 /** Add a locale here and in each page's dictionary to support it. */
-export const LOCALES = ['zh', 'en'] as const;
+export const LOCALES = ['zh', 'en', 'es', 'fr', 'de', 'pt', 'ja', 'ar', 'it'] as const;
 export type Locale = (typeof LOCALES)[number];
 
-/** Shown in the language switch; the key is the locale, the value its own name. */
-export const LOCALE_NAMES: Record<Locale, string> = { zh: '中文', en: 'English' };
+/** Shown in the language switch; each entry is the language's own name. */
+export const LOCALE_NAMES: Record<Locale, string> = {
+  zh: '中文',
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  de: 'Deutsch',
+  pt: 'Português',
+  ja: '日本語',
+  ar: 'العربية',
+  it: 'Italiano',
+};
+
+/** Value for `<html lang>`, per locale (zh uses the regional tag). */
+export const HTML_LANG: Record<Locale, string> = {
+  zh: 'zh-CN',
+  en: 'en',
+  es: 'es',
+  fr: 'fr',
+  de: 'de',
+  pt: 'pt',
+  ja: 'ja',
+  ar: 'ar',
+  it: 'it',
+};
+
+/** Locales that render right-to-left; the page flips via `<html dir>`. */
+export const RTL_LOCALES: ReadonlySet<Locale> = new Set<Locale>(['ar']);
+
+/** `true` when the locale needs a right-to-left document. */
+export function isRtlLocale(locale: Locale): boolean {
+  return RTL_LOCALES.has(locale);
+}
 
 const DEFAULT_LOCALE: Locale = 'zh';
 const STORAGE_KEY = 'echarts-flow-locale';
@@ -76,7 +107,8 @@ export function storeLocale(locale: Locale): void {
  */
 export function applyMessages(messages: Messages, locale: Locale): void {
   const dict = messages[locale] ?? {};
-  document.documentElement.lang = locale === 'zh' ? 'zh-CN' : locale;
+  document.documentElement.lang = HTML_LANG[locale];
+  document.documentElement.dir = isRtlLocale(locale) ? 'rtl' : 'ltr';
 
   document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((element) => {
     const text = dict[element.dataset.i18n ?? ''];
@@ -133,26 +165,34 @@ export function setupI18n(messages: Messages, switchSelector = '[data-lang-switc
   return currentLocale;
 }
 
-/** Renders one button per locale; the active one is marked and disabled. */
+/**
+ * Merges per-language dictionaries left to right, so shared layout messages
+ * can be combined with page-specific ones. Later sources win on key conflicts.
+ */
+export function mergeMessages(...sources: Messages[]): Messages {
+  const merged = {} as Messages;
+  LOCALES.forEach((locale) => {
+    merged[locale] = Object.assign({}, ...sources.map((source) => source[locale]));
+  });
+  return merged;
+}
+
+/** Renders a `<select>` with one option per locale; the active one is selected. */
 export function mountLangSwitch(container: HTMLElement): void {
   container.textContent = '';
   container.classList.add('lang-switch');
-  container.setAttribute('role', 'group');
-  container.setAttribute('aria-label', 'Language');
+  const select = document.createElement('select');
+  select.className = 'lang-switch__select';
+  select.setAttribute('aria-label', 'Language');
   LOCALES.forEach((locale) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'lang-switch__option';
-    button.textContent = LOCALE_NAMES[locale];
-    button.dataset.locale = locale;
-    button.addEventListener('click', () => setLocale(locale));
-    container.append(button);
+    const option = document.createElement('option');
+    option.value = locale;
+    option.textContent = LOCALE_NAMES[locale];
+    select.append(option);
   });
+  select.addEventListener('change', () => setLocale(select.value as Locale));
+  container.append(select);
   onLocaleChange((locale) => {
-    container.querySelectorAll<HTMLButtonElement>('.lang-switch__option').forEach((button) => {
-      const isActive = button.dataset.locale === locale;
-      button.classList.toggle('lang-switch__option--active', isActive);
-      button.setAttribute('aria-current', isActive ? 'true' : 'false');
-    });
+    select.value = locale;
   });
 }

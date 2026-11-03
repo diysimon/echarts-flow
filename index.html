@@ -7,30 +7,26 @@
     <link rel="stylesheet" href="./shared/site.css" />
   </head>
   <body>
-    <nav class="site-nav">
-      <a class="site-nav__brand" href="./">echarts-flow</a>
-      <div class="site-nav__links">
-        <a class="site-nav__link site-nav__link--active" href="./" data-i18n="navHome">首页</a>
-        <a class="site-nav__link" href="./docs/" data-i18n="navDocs">文档</a>
-        <a class="site-nav__link" href="./examples/" data-i18n="navExamples">示例</a>
-        <a class="site-nav__link" href="./editor.html" data-i18n="navEditor">在线编辑器</a>
-        <a class="site-nav__link" href="https://github.com/diysimon/echarts-flow">GitHub</a>
-      </div>
-      <span data-lang-switch></span>
-    </nav>
+    <header data-site-header></header>
 
     <header class="hero">
+      <span class="hero__badge" data-i18n="heroBadge">v0.1.0 · Apache-2.0</span>
       <h1 class="hero__title">echarts-flow</h1>
-      <p class="hero__tagline" data-i18n="heroTagline">基于 ECharts 6 自定义系列的可编辑流程图与泳道图扩展。</p>
+      <p class="hero__tagline" data-i18n="heroTagline">基于 ECharts 6 自定义系列的可编辑流程图与泳道图扩展，原生 TypeScript，Canvas 与 SVG 双渲染。</p>
       <div class="hero__actions">
         <a class="button button--primary" href="./editor.html" data-i18n="ctaEditor">打开在线编辑器</a>
         <a class="button" href="./docs/" data-i18n="ctaDocs">阅读文档</a>
+      </div>
+      <div class="hero__code">
+        <pre><code>npm install echarts-flow echarts</code></pre>
       </div>
     </header>
 
     <main class="site-main">
       <div class="card-grid" id="features"></div>
     </main>
+
+    <footer data-site-footer></footer>
 
     <script type="module" src="./home.ts"></script>
   </body>

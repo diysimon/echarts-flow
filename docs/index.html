@@ -7,39 +7,29 @@
     <link rel="stylesheet" href="../shared/site.css" />
   </head>
   <body>
-    <nav class="site-nav">
-      <a class="site-nav__brand" href="../">echarts-flow</a>
-      <div class="site-nav__links">
-        <a class="site-nav__link" href="../" data-i18n="navHome">首页</a>
-        <a class="site-nav__link site-nav__link--active" href="./" data-i18n="navDocs">文档</a>
-        <a class="site-nav__link" href="../examples/" data-i18n="navExamples">示例</a>
-        <a class="site-nav__link" href="../editor.html" data-i18n="navEditor">在线编辑器</a>
-        <a class="site-nav__link" href="https://github.com/diysimon/echarts-flow">GitHub</a>
-      </div>
-      <span data-lang-switch></span>
-    </nav>
+    <header data-site-header></header>
 
     <div class="docs">
-      <aside class="docs__nav">
-        <ul>
-          <li><a href="#install" data-i18n="tocInstall">安装</a></li>
-          <li><a href="#quickstart" data-i18n="tocQuickstart">快速上手</a></li>
-          <li><a href="#editor" data-i18n="tocEditor">交互编辑器</a></li>
-          <li><a href="#concepts" data-i18n="tocConcepts">核心概念</a></li>
-          <li><a href="#next" data-i18n="tocNext">下一步</a></li>
+      <aside class="docs__nav" id="docs-nav">
+        <ul id="toc-list">
+          <li><a href="#install" data-i18n="tocInstall"></a></li>
+          <li><a href="#quickstart" data-i18n="tocQuickstart"></a></li>
+          <li><a href="#editor" data-i18n="tocEditor"></a></li>
+          <li><a href="#concepts" data-i18n="tocConcepts"></a></li>
+          <li><a href="#next" data-i18n="tocNext"></a></li>
         </ul>
       </aside>
 
       <article class="docs__content">
-        <h1 data-i18n="title">开发者文档</h1>
-        <p data-i18n="intro">echarts-flow 是基于 ECharts 6 可注册自定义系列的流程图与泳道图扩展。你可以只用它渲染，也可以用内置的 FlowEditor 获得完整交互编辑。</p>
+        <h1 data-i18n="title"></h1>
+        <p data-i18n="intro"></p>
 
-        <h2 id="install" data-i18n="installTitle">安装</h2>
-        <p data-i18n="installBody">通过 npm 安装，ECharts 6 作为对等依赖。</p>
+        <h2 id="install" data-i18n="installTitle"></h2>
+        <p data-i18n="installBody"></p>
         <pre><code>npm install echarts-flow echarts</code></pre>
 
-        <h2 id="quickstart" data-i18n="quickstartTitle">快速上手：只读渲染</h2>
-        <p data-i18n="quickstartBody">注册扩展后，用 buildFlowOption 把图数据转成 ECharts option。自动布局会补全没有坐标的节点。</p>
+        <h2 id="quickstart" data-i18n="quickstartTitle"></h2>
+        <p data-i18n="quickstartBody"></p>
         <pre><code>import * as echarts from 'echarts/core';
 import { CustomChart } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -50,14 +40,14 @@ echarts.use([CustomChart, CanvasRenderer, flowExtension]);
 const chart = echarts.init(document.getElementById('chart'));
 chart.setOption(buildFlowOption({
   nodes: [
-    { id: 'a', label: '开始', shape: 'start' },
-    { id: 'b', label: '处理', shape: 'process' },
+    { id: 'a', label: 'Start', shape: 'start' },
+    { id: 'b', label: 'Process', shape: 'process' },
   ],
   edges: [{ id: 'e1', source: 'a', target: 'b' }],
 }));</code></pre>
 
-        <h2 id="editor" data-i18n="editorTitle">交互编辑器</h2>
-        <p data-i18n="editorBody">需要拖拽、连线、撤销重做时，用 FlowEditor 包住一个 ECharts 实例。每项编辑能力都能通过 edit 选项开关。</p>
+        <h2 id="editor" data-i18n="editorTitle"></h2>
+        <p data-i18n="editorBody"></p>
         <pre><code>import { FlowEditor } from 'echarts-flow';
 
 const editor = new FlowEditor(chart, {
@@ -66,18 +56,20 @@ const editor = new FlowEditor(chart, {
   onChange: (next) => console.log(next),
 });</code></pre>
 
-        <h2 id="concepts" data-i18n="conceptsTitle">核心概念</h2>
+        <h2 id="concepts" data-i18n="conceptsTitle"></h2>
         <ul>
-          <li data-i18n-html="conceptSeries"><strong>自定义系列</strong>：网格、泳道、连线、节点和编辑层各是一个 custom series，通过 echarts.use(flowExtension) 注册。</li>
-          <li data-i18n-html="conceptPayload"><strong>itemPayload</strong>：每个系列的数据通过 itemPayload 传入 renderItem，渲染是纯函数。</li>
-          <li data-i18n-html="conceptTheme"><strong>主题</strong>：8 套内置主题，createFlowTheme 做深度覆盖，支持渐变色。</li>
-          <li data-i18n-html="conceptEditor"><strong>编辑能力</strong>：所有交互经 edit 选项与 setEditOptions() 控制；API 调用不受开关限制。</li>
+          <li data-i18n-html="conceptSeries"></li>
+          <li data-i18n-html="conceptPayload"></li>
+          <li data-i18n-html="conceptTheme"></li>
+          <li data-i18n-html="conceptEditor"></li>
         </ul>
 
-        <h2 id="next" data-i18n="nextTitle">下一步</h2>
-        <p data-i18n-html="nextBody">浏览<a href="../examples/">示例</a>，或在 <a href="https://github.com/diysimon/echarts-flow">GitHub</a> 查看完整 README 与 API。</p>
+        <h2 id="next" data-i18n="nextTitle"></h2>
+        <p data-i18n-html="nextBody"></p>
       </article>
     </div>
+
+    <footer data-site-footer></footer>
 
     <script type="module" src="./docs.ts"></script>
   </body>
